@@ -4,3 +4,4 @@ export {
   type SpecTraceRuleConfig,
   type SpecTraceUserConfig,
 } from './config.js'
+export { parseSpecs, SpecParseError, type Requirement } from './spec-parser.js'
