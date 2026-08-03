@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "tests": [
+    {
+      "name": "REQ-001: cart quantity validation > accepts a positive quantity",
+      "file": "test/cart.test.ts",
+      "status": "passed"
+    }
+  ]
+}
