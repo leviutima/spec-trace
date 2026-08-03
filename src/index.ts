@@ -12,3 +12,4 @@ export {
   type Severity,
   type Violation,
 } from './rules-engine.js'
+export { detectWeakTests, type WeakTestFinding, type WeakTestReason } from './weak-test-detector.js'
