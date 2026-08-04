@@ -1,5 +1,8 @@
 {
   "generatedAt": "2026-01-01T00:00:00.000Z",
+  "files": [
+    { "path": "test/math.test.ts", "hash": "41a96494b816d35e2fe6e6a88244cccd5738266f918b07ba6d172cbf7c31661d" }
+  ],
   "tests": [
     {
       "name": "REQ-101: sums two numbers > adds two positive numbers",

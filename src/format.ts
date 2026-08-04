@@ -14,6 +14,8 @@ const ACTIONS: Record<RuleId, (violation: Violation) => string> = {
   'duplicate-requirement': (v) =>
     `Rename one of the duplicate "${v.requirementId}" headings so each requirement has a unique id.`,
   'weak-test': () => "Strengthen this test's assertions — it matched a weak-test heuristic (see message).",
+  'stale-results': () =>
+    'Re-run your test suite with the spec-trace reporter configured so results.json reflects the current test files.',
 }
 
 export function actionFor(violation: Violation): string {

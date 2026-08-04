@@ -8,6 +8,8 @@ export const DEFAULT_CONFIG: SpecTraceConfig = {
   specDir: 'specs',
   resultsFile: '.spec-trace/results.json',
   idPattern: 'REQ-\\d+',
+  testMatch: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+  testIgnore: [],
   rules: {},
   ignore: [],
 }

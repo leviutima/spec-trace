@@ -6,12 +6,15 @@ export interface SpecTraceRuleConfig {
   'failing-coverage'?: 'error' | 'warn' | 'off'
   'duplicate-requirement'?: 'error' | 'warn' | 'off'
   'weak-test'?: 'error' | 'warn' | 'off'
+  'stale-results'?: 'error' | 'warn' | 'off'
 }
 
 export interface SpecTraceConfig {
   specDir: string
   resultsFile: string
   idPattern: string
+  testMatch: string[]
+  testIgnore: string[]
   rules: SpecTraceRuleConfig
   ignore: string[]
 }

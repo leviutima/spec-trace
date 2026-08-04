@@ -1,4 +1,5 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import type { File, Reporter, Task, Vitest } from 'vitest'
 
@@ -10,8 +11,14 @@ export interface TestResult {
   status: TestStatus
 }
 
+export interface TestFileFingerprint {
+  path: string
+  hash: string
+}
+
 export interface ResultsFile {
   generatedAt: string
+  files: TestFileFingerprint[]
   tests: TestResult[]
 }
 
@@ -39,20 +46,31 @@ export class SpecTraceReporter implements Reporter {
   }
 
   onFinished(files: File[] = []): void {
+    const fileFingerprints: TestFileFingerprint[] = []
+
     const tests = files.flatMap((file) => {
       // Recorded relative to the project root (POSIX-style, even on
       // Windows) so results.json is portable and reads the same as the
       // file paths a user would type in their own terminal.
       const relativePath = relative(this.root, file.filepath).split('\\').join('/')
+      fileFingerprints.push({ path: relativePath, hash: hashFile(file.filepath) })
       return file.tasks.flatMap((task) => collectTestResults(task, relativePath, []))
     })
 
-    const payload: ResultsFile = { generatedAt: new Date().toISOString(), tests }
+    const payload: ResultsFile = {
+      generatedAt: new Date().toISOString(),
+      files: fileFingerprints,
+      tests,
+    }
     const outputPath = isAbsolute(this.outputFile) ? this.outputFile : join(this.root, this.outputFile)
 
     mkdirSync(dirname(outputPath), { recursive: true })
     writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`)
   }
+}
+
+function hashFile(filePath: string): string {
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex')
 }
 
 export function collectTestResults(task: Task, file: string, ancestors: string[]): TestResult[] {

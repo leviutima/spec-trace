@@ -1,5 +1,5 @@
 import type { SpecTraceRuleConfig } from './config.js'
-import type { TestResult } from './reporter.js'
+import type { TestFileFingerprint, TestResult } from './reporter.js'
 import type { Requirement } from './spec-parser.js'
 
 export type RuleId = keyof SpecTraceRuleConfig
@@ -14,9 +14,15 @@ export interface Violation {
   line?: number
 }
 
+export interface FileState {
+  recorded: TestFileFingerprint[]
+  onDisk: TestFileFingerprint[]
+}
+
 export interface CheckRulesOptions {
   rules?: SpecTraceRuleConfig
   ignore?: string[]
+  fileState?: FileState
 }
 
 const DEFAULT_SEVERITIES: Required<SpecTraceRuleConfig> = {
@@ -27,6 +33,7 @@ const DEFAULT_SEVERITIES: Required<SpecTraceRuleConfig> = {
   'failing-coverage': 'error',
   'duplicate-requirement': 'error',
   'weak-test': 'warn',
+  'stale-results': 'error',
 }
 
 const REQUIREMENT_ID_TOKEN = /REQ-\d+/g
@@ -140,7 +147,47 @@ export function checkRules(
     }
   }
 
+  if (options.fileState) {
+    checkStaleResults(options.fileState, emit)
+  }
+
   return violations
+}
+
+function checkStaleResults(fileState: FileState, emit: (violation: Omit<Violation, 'severity'>) => void): void {
+  const recordedByPath = new Map(fileState.recorded.map((f) => [f.path, f.hash]))
+  const onDiskByPath = new Map(fileState.onDisk.map((f) => [f.path, f.hash]))
+
+  for (const [path] of recordedByPath) {
+    if (!onDiskByPath.has(path)) {
+      emit({
+        rule: 'stale-results',
+        file: path,
+        message: `Test file "${path}" recorded in results.json no longer exists`,
+      })
+    }
+  }
+
+  for (const [path, recordedHash] of recordedByPath) {
+    const diskHash = onDiskByPath.get(path)
+    if (diskHash !== undefined && diskHash !== recordedHash) {
+      emit({
+        rule: 'stale-results',
+        file: path,
+        message: `Test file "${path}" changed after the last run`,
+      })
+    }
+  }
+
+  for (const [path] of onDiskByPath) {
+    if (!recordedByPath.has(path)) {
+      emit({
+        rule: 'stale-results',
+        file: path,
+        message: `Test file "${path}" was never executed`,
+      })
+    }
+  }
 }
 
 function extractRequirementIds(text: string): string[] {

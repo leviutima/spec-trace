@@ -60,3 +60,22 @@ tests, **the system shall** treat it as adequately covered as long as at
 least one covering test passed. **When** a single test's name references
 more than one requirement id, **the system shall** count that test as
 coverage for every id it references.
+
+## REQ-034 — stale-results
+
+**When** the caller supplies file-state information (which test files
+`results.json` recorded versus which test files actually exist on disk
+right now, each with a content hash), **the system shall** report a
+`stale-results` violation for each of the following, independently:
+
+- **deleted**: a file recorded in `results.json` no longer exists on disk.
+- **modified**: a file recorded in `results.json` still exists, but its
+  current content hash does not match the hash that was recorded.
+- **never-ran**: a file on disk matches the test-file pattern but was
+  never recorded in `results.json` at all.
+
+`never-ran` is the one that matters most in practice — it's what catches
+a test an agent wrote and never ran, or a test file that was deleted and
+never re-run to prove the deletion didn't remove coverage. **When** no
+file-state information is supplied, **the system shall** skip this rule
+entirely rather than treat its absence as passing.

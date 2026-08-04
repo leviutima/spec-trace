@@ -1,10 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { isAbsolute, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import type { SpecTraceConfig } from './config.js'
-import type { ResultsFile } from './reporter.js'
+import type { ResultsFile, TestFileFingerprint } from './reporter.js'
 import { checkRules, type Severity, type Violation } from './rules-engine.js'
 import { parseSpecs, type Requirement } from './spec-parser.js'
 import { detectWeakTests } from './weak-test-detector.js'
+
+const IGNORED_DIRS = new Set(['node_modules', 'dist', '.git', '.spec-trace', 'coverage'])
 
 export class ResultsFileNotFoundError extends Error {}
 export class SpecDirNotFoundError extends Error {}
@@ -46,6 +49,10 @@ export async function gatherResults(
   const ruleViolations = checkRules(requirements, resultsFile.tests, {
     rules: config.rules,
     ignore: config.ignore,
+    fileState: {
+      recorded: reconcileRecordedFiles(resultsFile),
+      onDisk: findTestFilesOnDisk(cwd, config.testMatch, config.testIgnore),
+    },
   })
 
   const weakTestSeverity = config.rules['weak-test'] ?? 'warn'
@@ -53,6 +60,79 @@ export async function gatherResults(
     weakTestSeverity === 'off' ? [] : findWeakTestViolations(resultsFile, cwd, weakTestSeverity)
 
   return { requirements, violations: [...ruleViolations, ...weakTestViolations] }
+}
+
+/**
+ * A results.json a reporter actually wrote always has a `files` entry for
+ * every file its `tests` reference. One that doesn't — an old-format file
+ * from before this fingerprinting existed, or one hand-crafted by an agent
+ * trying to fake a clean run — gets every such file synthesized in here
+ * with a hash that can never match real content, so stale-results still
+ * catches it as either "deleted" (absent from disk) or "modified"
+ * (present with any real hash) instead of silently passing.
+ */
+function reconcileRecordedFiles(resultsFile: ResultsFile): TestFileFingerprint[] {
+  const recorded = resultsFile.files ?? []
+  const knownPaths = new Set(recorded.map((f) => f.path))
+  const unfingerprinted: TestFileFingerprint[] = []
+
+  for (const test of resultsFile.tests) {
+    if (!knownPaths.has(test.file)) {
+      knownPaths.add(test.file)
+      unfingerprinted.push({ path: test.file, hash: '' })
+    }
+  }
+
+  return [...recorded, ...unfingerprinted]
+}
+
+/**
+ * Walks the project directory looking for files matching testMatch, so
+ * stale-results can tell a fresh run from a hand-edited or outdated
+ * results.json. Not a general glob engine — testMatch patterns are
+ * limited to the "**\/<suffix>" shape (e.g. "**\/*.test.ts"), matched
+ * against each file's own name. Deliberately no glob dependency for this.
+ * testIgnore is a plain path-prefix exclusion (also not a glob) for
+ * directories that legitimately contain *.test.ts-named files that are
+ * never meant to run directly — this project's own test/fixtures/ being
+ * the example that surfaced the need for it.
+ */
+function findTestFilesOnDisk(root: string, testMatch: string[], testIgnore: string[]): TestFileFingerprint[] {
+  const results: TestFileFingerprint[] = []
+
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = join(dir, entry.name)
+      const relativePath = relative(root, fullPath).split('\\').join('/')
+
+      if (entry.isDirectory()) {
+        if (IGNORED_DIRS.has(entry.name) || isIgnoredPath(relativePath, testIgnore)) continue
+        walk(fullPath)
+      } else if (entry.isFile() && matchesAnyPattern(entry.name, testMatch) && !isIgnoredPath(relativePath, testIgnore)) {
+        results.push({
+          path: relativePath,
+          hash: createHash('sha256').update(readFileSync(fullPath)).digest('hex'),
+        })
+      }
+    }
+  }
+
+  walk(root)
+  return results
+}
+
+function isIgnoredPath(relativePath: string, testIgnore: string[]): boolean {
+  return testIgnore.some((prefix) => relativePath === prefix || relativePath.startsWith(`${prefix}/`))
+}
+
+function matchesAnyPattern(fileName: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => matchesPattern(fileName, pattern))
+}
+
+function matchesPattern(fileName: string, pattern: string): boolean {
+  if (!pattern.startsWith('**/')) return fileName === pattern
+  const rest = pattern.slice(3)
+  return rest.startsWith('*') ? fileName.endsWith(rest.slice(1)) : fileName === rest
 }
 
 function findWeakTestViolations(

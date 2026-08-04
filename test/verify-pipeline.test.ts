@@ -45,4 +45,79 @@ describe('gatherResults', () => {
 
     expect(violations.some((v) => v.rule === 'weak-test')).toBe(false)
   })
+
+  describe('[REQ-034][REQ-035] stale-results', () => {
+    it('reports no stale-results violation for a file whose recorded hash matches disk', async () => {
+      const cwd = fixture('stale-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(
+        violations.filter((v) => v.rule === 'stale-results' && v.file === 'test/covered.test.ts'),
+      ).toEqual([])
+    })
+
+    it('flags a file recorded in results.json that no longer exists on disk', async () => {
+      const cwd = fixture('stale-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'stale-results', file: 'test/deleted.test.ts' }),
+      )
+    })
+
+    it('flags a file whose disk content no longer matches the recorded hash', async () => {
+      const cwd = fixture('stale-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'stale-results', file: 'test/modified.test.ts' }),
+      )
+    })
+
+    it('flags a test file on disk that was never recorded in results.json', async () => {
+      const cwd = fixture('stale-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'stale-results', file: 'test/never-ran.test.ts' }),
+      )
+    })
+
+    it('flags a test whose file has no fingerprint at all — an old-format or hand-crafted results.json', async () => {
+      const cwd = fixture('forged-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'stale-results', file: 'test/example.test.ts' }),
+      )
+    })
+  })
+
+  describe('[REQ-036] testIgnore', () => {
+    it('flags a fixture-style test file under an ignored directory by default (testIgnore is empty)', async () => {
+      const cwd = fixture('test-ignore')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'stale-results', file: 'test/fixtures/ignored.test.ts' }),
+      )
+    })
+
+    it('does not flag it once its directory is listed in testIgnore', async () => {
+      const cwd = fixture('test-ignore')
+
+      const { violations } = await gatherResults(
+        { ...DEFAULT_CONFIG, testIgnore: ['test/fixtures'] },
+        cwd,
+      )
+
+      expect(violations.some((v) => v.rule === 'stale-results')).toBe(false)
+    })
+  })
 })

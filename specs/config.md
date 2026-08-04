@@ -15,7 +15,8 @@ type inference and autocomplete in their config file.
 directory and no explicit `--config` path is given, **the system shall**
 use the built-in defaults (`specDir: 'specs'`,
 `resultsFile: '.spec-trace/results.json'`, `idPattern: 'REQ-\\d+'`,
-empty `rules`, empty `ignore`).
+`testMatch: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx']`,
+empty `testIgnore`, empty `rules`, empty `ignore`).
 
 ## REQ-025 — A discovered config file is merged with the defaults
 

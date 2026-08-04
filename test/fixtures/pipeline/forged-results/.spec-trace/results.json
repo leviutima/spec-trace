@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "tests": [
+    {
+      "name": "REQ-401: example > proves the requirement",
+      "file": "test/example.test.ts",
+      "status": "passed"
+    }
+  ]
+}

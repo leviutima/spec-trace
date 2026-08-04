@@ -1,5 +1,8 @@
 {
   "generatedAt": "2026-01-01T00:00:00.000Z",
+  "files": [
+    { "path": "test/cart.test.ts", "hash": "31ecb411eb9a2d64bada2248b38d53fc5d5c656b9094dcd7a1a9a7a78ad72133" }
+  ],
   "tests": [
     {
       "name": "REQ-001: cart quantity validation > accepts a positive quantity",

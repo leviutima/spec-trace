@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "files": [
+    { "path": "test/covered.test.ts", "hash": "f9adbb76c0d798194eb3f0a737870fb8cd994fadbcd4cbd2daf2a1a399fac9ff" }
+  ],
+  "tests": [
+    {
+      "name": "REQ-501: genuinely covered > proves the requirement",
+      "file": "test/covered.test.ts",
+      "status": "passed"
+    }
+  ]
+}

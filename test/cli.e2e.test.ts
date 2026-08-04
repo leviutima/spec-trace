@@ -66,6 +66,31 @@ describe('spec-trace CLI (end-to-end)', () => {
     expect(result.status).toBe(0)
   })
 
+  it('[REQ-034][REQ-035] exits 1 and reports all three stale-results triggers: deleted, modified, never-ran', () => {
+    const result = runCli(['verify', '--json'], fixture('stale-results'))
+
+    expect(result.status).toBe(1)
+    const violations = JSON.parse(result.stdout) as Violation[]
+    const staleFiles = violations.filter((v) => v.rule === 'stale-results').map((v) => v.file).sort()
+
+    expect(staleFiles).toEqual([
+      'test/deleted.test.ts',
+      'test/modified.test.ts',
+      'test/never-ran.test.ts',
+    ])
+  })
+
+  it('[REQ-034] catches a results.json that no longer reflects the test files on disk at all', () => {
+    // This is the scenario the whole tool exists to prevent: an agent
+    // deletes every test, and a stale results.json from a prior run is
+    // still enough to make verify report a clean bill of health.
+    const result = runCli(['verify', '--json'], fixture('missing-tests-on-disk'))
+
+    expect(result.status).toBe(1)
+    const violations = JSON.parse(result.stdout) as Violation[]
+    expect(violations).toContainEqual(expect.objectContaining({ rule: 'stale-results' }))
+  })
+
   it('[REQ-032] writes an agent-readable markdown report and exits 0 regardless of violations', () => {
     const result = runCli(['report'], fixture('happy-path'))
 

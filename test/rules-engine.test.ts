@@ -174,4 +174,102 @@ describe('checkRules', () => {
 
     expect(violations).toEqual([])
   })
+
+  describe('[REQ-034] stale-results', () => {
+    it('skips the rule entirely when no file state is supplied', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+      )
+
+      expect(violations.some((v) => v.rule === 'stale-results')).toBe(false)
+    })
+
+    it('flags "deleted" when a recorded file no longer exists on disk', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+        {
+          fileState: {
+            recorded: [{ path: 'test/example.test.ts', hash: 'abc' }],
+            onDisk: [],
+          },
+        },
+      )
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({
+          rule: 'stale-results',
+          severity: 'error',
+          file: 'test/example.test.ts',
+        }),
+      )
+    })
+
+    it('flags "modified" when a recorded file\'s hash no longer matches disk', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+        {
+          fileState: {
+            recorded: [{ path: 'test/example.test.ts', hash: 'old-hash' }],
+            onDisk: [{ path: 'test/example.test.ts', hash: 'new-hash' }],
+          },
+        },
+      )
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({
+          rule: 'stale-results',
+          severity: 'error',
+          file: 'test/example.test.ts',
+        }),
+      )
+    })
+
+    it('flags "never-ran" when a file on disk matches testMatch but was never recorded', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+        {
+          fileState: {
+            recorded: [],
+            onDisk: [{ path: 'test/never-ran.test.ts', hash: 'x' }],
+          },
+        },
+      )
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({
+          rule: 'stale-results',
+          severity: 'error',
+          file: 'test/never-ran.test.ts',
+        }),
+      )
+    })
+
+    it('reports nothing when recorded and on-disk file state match exactly', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+        {
+          fileState: {
+            recorded: [{ path: 'test/example.test.ts', hash: 'same' }],
+            onDisk: [{ path: 'test/example.test.ts', hash: 'same' }],
+          },
+        },
+      )
+
+      expect(violations.some((v) => v.rule === 'stale-results')).toBe(false)
+    })
+
+    it('respects a severity override for stale-results', () => {
+      const violations = checkRules([req({ id: 'REQ-001' })], [], {
+        rules: { 'stale-results': 'warn' },
+        fileState: { recorded: [], onDisk: [{ path: 'test/x.test.ts', hash: 'x' }] },
+      })
+
+      expect(violations).toContainEqual(expect.objectContaining({ rule: 'stale-results', severity: 'warn' }))
+    })
+  })
 })

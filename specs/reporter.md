@@ -19,3 +19,13 @@ absolute path.
 status as `skipped` or `todo` respectively, regardless of any result value
 that might otherwise be present. **When** a test actually ran, **the
 system shall** record `passed` or `failed` based on its real result.
+
+## REQ-033 — Records a content fingerprint for every test file that ran
+
+**When** a Vitest run finishes, **the system shall** record, alongside
+`generatedAt` and `tests`, a `files` array listing every test file that
+ran with its path (relative to the project root, forward slashes) and a
+sha256 hash of its content at the time it ran. This is what lets
+`verify` tell a fresh run from a stale or hand-edited `results.json` — a
+results file whose own claims can't be checked against the filesystem is
+not evidence of anything.

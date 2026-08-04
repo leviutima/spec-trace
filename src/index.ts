@@ -8,6 +8,7 @@ export { parseSpecs, SpecParseError, type Requirement } from './spec-parser.js'
 export {
   checkRules,
   type CheckRulesOptions,
+  type FileState,
   type RuleId,
   type Severity,
   type Violation,

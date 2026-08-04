@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -63,5 +64,13 @@ describe('[REQ-007][REQ-008] SpecTraceReporter (end-to-end)', () => {
   it('[REQ-007] records the file path relative to the project root, not absolute', () => {
     const test = results.tests.find((t) => t.name === 'REQ-100: sample suite > passes')
     expect(test?.file).toBe('sample.test.ts')
+  })
+
+  it('[REQ-033] records a sha256 fingerprint of each test file that ran', () => {
+    const expectedHash = createHash('sha256')
+      .update(readFileSync(join(fixtureDir, 'sample.test.ts')))
+      .digest('hex')
+
+    expect(results.files).toContainEqual({ path: 'sample.test.ts', hash: expectedHash })
   })
 })
