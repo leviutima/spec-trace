@@ -3,6 +3,8 @@
 [![npm version](https://img.shields.io/npm/v/%40leviutima%2Fspec-trace.svg)](https://www.npmjs.com/package/@leviutima/spec-trace)
 [![license](https://img.shields.io/npm/l/%40leviutima%2Fspec-trace.svg)](./LICENSE)
 
+🇺🇸 English | 🇧🇷 [Português](./README.pt-BR.md)
+
 **The agent can't be the judge of its own test.**
 
 AI agents today write both the code and the tests that prove that code is
