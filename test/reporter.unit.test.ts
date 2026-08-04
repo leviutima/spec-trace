@@ -19,7 +19,7 @@ function fakeSuite(overrides: Partial<Suite> & { name: string; tasks: Task[] }):
 }
 
 describe('collectTestResults', () => {
-  it('builds the full name from nested describe blocks down to the test', () => {
+  it('[REQ-007] builds the full name from nested describe blocks down to the test', () => {
     const tree = fakeSuite({
       name: 'REQ-014: cart quantity validation',
       tasks: [
@@ -41,7 +41,7 @@ describe('collectTestResults', () => {
     ])
   })
 
-  it('reports a failing test as failed', () => {
+  it('[REQ-008] reports a failing test as failed', () => {
     const test = fakeTest({ name: 'fails', result: { state: 'fail' } })
 
     expect(collectTestResults(test, 'a.test.ts', [])).toEqual([
@@ -49,7 +49,7 @@ describe('collectTestResults', () => {
     ])
   })
 
-  it('reports an it.skip test as skipped even if it somehow has a result', () => {
+  it('[REQ-008] reports an it.skip test as skipped even if it somehow has a result', () => {
     const test = fakeTest({ name: 'skipped', mode: 'skip', result: { state: 'pass' } })
 
     expect(collectTestResults(test, 'a.test.ts', [])).toEqual([
@@ -57,7 +57,7 @@ describe('collectTestResults', () => {
     ])
   })
 
-  it('reports an it.todo test as todo', () => {
+  it('[REQ-008] reports an it.todo test as todo', () => {
     const test = fakeTest({ name: 'someday', mode: 'todo' })
 
     expect(collectTestResults(test, 'a.test.ts', [])).toEqual([
@@ -65,7 +65,7 @@ describe('collectTestResults', () => {
     ])
   })
 
-  it('falls back to skipped for a test that never produced a result', () => {
+  it('[REQ-008] falls back to skipped for a test that never produced a result', () => {
     const test = fakeTest({ name: 'never ran' })
 
     expect(collectTestResults(test, 'a.test.ts', [])).toEqual([
@@ -73,7 +73,7 @@ describe('collectTestResults', () => {
     ])
   })
 
-  it('keeps a top-level test name unprefixed when it has no ancestor describe', () => {
+  it('[REQ-007] keeps a top-level test name unprefixed when it has no ancestor describe', () => {
     const test = fakeTest({ name: '[REQ-101] orphan-looking test', result: { state: 'pass' } })
 
     expect(collectTestResults(test, 'a.test.ts', [])).toEqual([

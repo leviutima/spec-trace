@@ -5,7 +5,7 @@ import { parseSpecs, SpecParseError } from '../src/spec-parser.js'
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'parser', ...segments)
 
 describe('parseSpecs', () => {
-  it('extracts id, title, body, file and line for each requirement', () => {
+  it('[REQ-001] extracts id, title, body, file and line for each requirement', () => {
     const requirements = parseSpecs(fixture('basic'))
 
     expect(requirements).toHaveLength(2)
@@ -24,7 +24,7 @@ describe('parseSpecs', () => {
     })
   })
 
-  it('keeps nested lower-level headings inside the body, stopping at the next same-or-higher heading', () => {
+  it('[REQ-002] keeps nested lower-level headings inside the body, stopping at the next same-or-higher heading', () => {
     const requirements = parseSpecs(fixture('nested'))
 
     expect(requirements).toHaveLength(2)
@@ -37,7 +37,7 @@ describe('parseSpecs', () => {
     expect(requirements[1]?.body).toBe('Body for the next requirement.')
   })
 
-  it('throws a fatal error listing both locations when an id is duplicated across files', () => {
+  it('[REQ-003] throws a fatal error listing both locations when an id is duplicated across files', () => {
     expect(() => parseSpecs(fixture('duplicate'))).toThrow(SpecParseError)
 
     try {
@@ -52,18 +52,18 @@ describe('parseSpecs', () => {
     }
   })
 
-  it('returns no requirements for an empty spec file', () => {
+  it('[REQ-004] returns no requirements for an empty spec file', () => {
     expect(parseSpecs(fixture('empty'))).toEqual([])
   })
 
-  it('ignores headings whose id does not match REQ-<digits>', () => {
+  it('[REQ-005] ignores headings whose id does not match REQ-<digits>', () => {
     const requirements = parseSpecs(fixture('malformed'))
 
     expect(requirements).toHaveLength(1)
     expect(requirements[0]?.id).toBe('REQ-030')
   })
 
-  it('marks a requirement as ignored when its body contains the ignore marker', () => {
+  it('[REQ-006] marks a requirement as ignored when its body contains the ignore marker', () => {
     const requirements = parseSpecs(fixture('ignore'))
 
     const ignored = requirements.find((r) => r.id === 'REQ-040')

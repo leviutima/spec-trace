@@ -23,7 +23,7 @@ function testResult(overrides: Partial<TestResult> & { name: string }): TestResu
 }
 
 describe('checkRules', () => {
-  it('reports no violations when every requirement has a passing test', () => {
+  it('[REQ-009] reports no violations when every requirement has a passing test', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [testResult({ name: 'REQ-001: does the thing', status: 'passed' })],
@@ -32,7 +32,7 @@ describe('checkRules', () => {
     expect(violations).toEqual([])
   })
 
-  it('flags uncovered-requirement when no test references the id', () => {
+  it('[REQ-009] flags uncovered-requirement when no test references the id', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [])
 
     expect(violations).toEqual([
@@ -40,7 +40,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('flags orphan-test when a test references no requirement id', () => {
+  it('[REQ-010] flags orphan-test when a test references no requirement id', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [
@@ -54,7 +54,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('flags unknown-requirement when a test references an id absent from the spec', () => {
+  it('[REQ-011] flags unknown-requirement when a test references an id absent from the spec', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [
@@ -68,7 +68,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('flags skipped-coverage when a requirement is only covered by skipped or todo tests', () => {
+  it('[REQ-012] flags skipped-coverage when a requirement is only covered by skipped or todo tests', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [
@@ -82,7 +82,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('flags failing-coverage when at least one covering test fails', () => {
+  it('[REQ-013] flags failing-coverage when at least one covering test fails', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [
@@ -96,7 +96,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('flags duplicate-requirement when the same id appears more than once', () => {
+  it('[REQ-014] flags duplicate-requirement when the same id appears more than once', () => {
     const violations = checkRules(
       [
         req({ id: 'REQ-001', file: 'specs/a.md', line: 3 }),
@@ -110,19 +110,19 @@ describe('checkRules', () => {
     ])
   })
 
-  it('does not flag a requirement marked ignored via the spec-trace:ignore marker', () => {
+  it('[REQ-015] does not flag a requirement marked ignored via the spec-trace:ignore marker', () => {
     const violations = checkRules([req({ id: 'REQ-001', ignored: true })], [])
 
     expect(violations).toEqual([])
   })
 
-  it('does not flag a requirement listed in the ignore option', () => {
+  it('[REQ-015] does not flag a requirement listed in the ignore option', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [], { ignore: ['REQ-001'] })
 
     expect(violations).toEqual([])
   })
 
-  it('silences a rule set to off in the config', () => {
+  it('[REQ-016] silences a rule set to off in the config', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [], {
       rules: { 'uncovered-requirement': 'off' },
     })
@@ -130,7 +130,7 @@ describe('checkRules', () => {
     expect(violations).toEqual([])
   })
 
-  it('honors a custom severity override', () => {
+  it('[REQ-016] honors a custom severity override', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [], {
       rules: { 'uncovered-requirement': 'warn' },
     })
@@ -140,7 +140,7 @@ describe('checkRules', () => {
     ])
   })
 
-  it('uses the documented default severities when no config is given', () => {
+  it('[REQ-016] uses the documented default severities when no config is given', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [testResult({ name: 'no id here', status: 'passed' })],
@@ -154,7 +154,7 @@ describe('checkRules', () => {
     )
   })
 
-  it('lets a requirement covered by a mix of a passing and a skipped test count as covered', () => {
+  it('[REQ-017] lets a requirement covered by a mix of a passing and a skipped test count as covered', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' })],
       [
@@ -166,7 +166,7 @@ describe('checkRules', () => {
     expect(violations).toEqual([])
   })
 
-  it('lets a single test cover more than one requirement', () => {
+  it('[REQ-017] lets a single test cover more than one requirement', () => {
     const violations = checkRules(
       [req({ id: 'REQ-001' }), req({ id: 'REQ-002' })],
       [testResult({ name: 'REQ-001 and REQ-002: covers both', status: 'passed' })],

@@ -14,7 +14,7 @@ function req(overrides: Partial<Requirement> & { id: string }): Requirement {
   }
 }
 
-describe('formatHuman', () => {
+describe('[REQ-027] formatHuman', () => {
   it('reports a clean summary when there are no violations', () => {
     const output = formatHuman([])
     expect(output).toContain('0 errors')
@@ -56,7 +56,7 @@ describe('formatHuman', () => {
   })
 })
 
-describe('formatMarkdownReport', () => {
+describe('[REQ-028] formatMarkdownReport', () => {
   it('lists every requirement with its coverage status', () => {
     const markdown = formatMarkdownReport(
       [req({ id: 'REQ-001', title: 'Covered thing' }), req({ id: 'REQ-002', title: 'Uncovered thing' })],

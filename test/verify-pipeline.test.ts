@@ -6,14 +6,14 @@ import { gatherResults, ResultsFileNotFoundError } from '../src/verify-pipeline.
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'pipeline', ...segments)
 
 describe('gatherResults', () => {
-  it('throws ResultsFileNotFoundError with a helpful message when results.json is missing', async () => {
+  it('[REQ-029] throws ResultsFileNotFoundError with a helpful message when results.json is missing', async () => {
     const cwd = fixture('missing-results')
 
     await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(ResultsFileNotFoundError)
     await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(/results\.json/)
   })
 
-  it('combines rule violations and weak-test findings from the real test source files', async () => {
+  it('[REQ-030] combines rule violations and weak-test findings from the real test source files', async () => {
     const cwd = fixture('happy-path')
 
     const { requirements, violations } = await gatherResults(DEFAULT_CONFIG, cwd)
@@ -28,7 +28,7 @@ describe('gatherResults', () => {
     )
   })
 
-  it('does not scan for weak tests when the weak-test rule is turned off', async () => {
+  it('[REQ-030] does not scan for weak tests when the weak-test rule is turned off', async () => {
     const cwd = fixture('happy-path')
 
     const { violations } = await gatherResults(

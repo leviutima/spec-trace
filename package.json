@@ -47,6 +47,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "verify": "node dist/cli.js verify",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

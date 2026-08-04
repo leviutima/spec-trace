@@ -26,7 +26,7 @@ describe('spec-trace CLI (end-to-end)', () => {
     rmSync(join(fixture('clean'), '.spec-trace', 'report.md'), { force: true })
   })
 
-  it('exits 0 and reports no violations for a fully covered, well-tested project', () => {
+  it('[REQ-031] exits 0 and reports no violations for a fully covered, well-tested project', () => {
     const result = runCli(['verify', '--json'], fixture('clean'))
 
     expect(result.status).toBe(0)
@@ -34,7 +34,7 @@ describe('spec-trace CLI (end-to-end)', () => {
     expect(violations).toEqual([])
   })
 
-  it('exits 1 and reports uncovered-requirement and weak-test violations', () => {
+  it('[REQ-031] exits 1 and reports uncovered-requirement and weak-test violations', () => {
     const result = runCli(['verify', '--json'], fixture('happy-path'))
 
     expect(result.status).toBe(1)
@@ -46,19 +46,19 @@ describe('spec-trace CLI (end-to-end)', () => {
     expect(violations).toContainEqual(expect.objectContaining({ rule: 'weak-test' }))
   })
 
-  it('exits 1 with a helpful stderr message when results.json is missing', () => {
+  it('[REQ-029][REQ-031] exits 1 with a helpful stderr message when results.json is missing', () => {
     const result = runCli(['verify'], fixture('missing-results'))
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('results.json')
   })
 
-  it('only fails on warnings when --fail-on=warn and there are no errors', () => {
+  it('[REQ-031] only fails on warnings when --fail-on=warn and there are no errors', () => {
     const result = runCli(['verify', '--json', '--fail-on', 'warn'], fixture('clean'))
     expect(result.status).toBe(0)
   })
 
-  it('writes an agent-readable markdown report and exits 0 regardless of violations', () => {
+  it('[REQ-032] writes an agent-readable markdown report and exits 0 regardless of violations', () => {
     const result = runCli(['report'], fixture('happy-path'))
 
     expect(result.status).toBe(0)

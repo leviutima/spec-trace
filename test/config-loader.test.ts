@@ -5,12 +5,12 @@ import { DEFAULT_CONFIG, loadConfig } from '../src/config-loader.js'
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'config', ...segments)
 
 describe('loadConfig', () => {
-  it('returns the defaults when no config file exists', async () => {
+  it('[REQ-024] returns the defaults when no config file exists', async () => {
     const config = await loadConfig(undefined, fixture('no-config'))
     expect(config).toEqual(DEFAULT_CONFIG)
   })
 
-  it('merges a discovered spec-trace.config.ts with the defaults', async () => {
+  it('[REQ-025] merges a discovered spec-trace.config.ts with the defaults', async () => {
     const config = await loadConfig(undefined, fixture('ts-config'))
 
     expect(config).toEqual({
@@ -21,7 +21,7 @@ describe('loadConfig', () => {
     })
   })
 
-  it('discovers a spec-trace.config.js when there is no .ts file', async () => {
+  it('[REQ-025] discovers a spec-trace.config.js when there is no .ts file', async () => {
     const config = await loadConfig(undefined, fixture('js-config'))
 
     expect(config).toEqual({
@@ -30,7 +30,7 @@ describe('loadConfig', () => {
     })
   })
 
-  it('loads an explicit --config path regardless of its file name', async () => {
+  it('[REQ-026] loads an explicit --config path regardless of its file name', async () => {
     const config = await loadConfig(fixture('explicit-path', 'custom.config.ts'), fixture('explicit-path'))
 
     expect(config).toEqual({

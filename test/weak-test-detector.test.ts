@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { detectWeakTests } from '../src/weak-test-detector.js'
 
 describe('detectWeakTests', () => {
-  it('flags a test with zero expect calls', () => {
+  it('[REQ-018] flags a test with zero expect calls', () => {
     const source = `
       it('does nothing useful', () => {
         const x = 1 + 1
@@ -15,7 +15,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('does not flag a test with a real assertion', () => {
+  it('[REQ-018] does not flag a test with a real assertion', () => {
     const source = `
       it('adds numbers', () => {
         expect(1 + 2).toBe(3)
@@ -24,7 +24,7 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('flags a test whose only assertion is toBeDefined', () => {
+  it('[REQ-019] flags a test whose only assertion is toBeDefined', () => {
     const source = `
       it('checks existence', () => {
         expect(result).toBeDefined()
@@ -37,7 +37,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('flags a test whose only assertion is not.toThrow', () => {
+  it('[REQ-019] flags a test whose only assertion is not.toThrow', () => {
     const source = `
       it('does not blow up', () => {
         expect(() => run()).not.toThrow()
@@ -50,7 +50,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('does not flag a positive toThrow assertion', () => {
+  it('[REQ-019] does not flag a positive toThrow assertion', () => {
     const source = `
       it('throws on bad input', () => {
         expect(() => run()).toThrow('bad input')
@@ -59,7 +59,7 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('does not flag a test that mixes a weak and a strong assertion', () => {
+  it('[REQ-019] does not flag a test that mixes a weak and a strong assertion', () => {
     const source = `
       it('checks both', () => {
         expect(result).toBeDefined()
@@ -69,7 +69,7 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('flags a tautological assertion with identical literals on both sides', () => {
+  it('[REQ-021] flags a tautological assertion with identical literals on both sides', () => {
     const source = `
       it('proves nothing', () => {
         expect(2).toBe(2)
@@ -82,7 +82,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('does not flag matching values that come from a real computation', () => {
+  it('[REQ-021] does not flag matching values that come from a real computation', () => {
     const source = `
       it('computes the sum', () => {
         expect(sum(1, 1)).toBe(2)
@@ -91,7 +91,7 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('flags a test that exercises a module the file mocks out', () => {
+  it('[REQ-020] flags a test that exercises a module the file mocks out', () => {
     const source = `
       import { addItem } from '../src/cart'
       vi.mock('../src/cart')
@@ -107,7 +107,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('does not flag a test when a different module is mocked', () => {
+  it('[REQ-020] does not flag a test when a different module is mocked', () => {
     const source = `
       import { addItem } from '../src/cart'
       vi.mock('../src/logger')
@@ -119,7 +119,7 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('cart.test.ts', source)).toEqual([])
   })
 
-  it('reports every heuristic that matches a single test', () => {
+  it('[REQ-019][REQ-020] reports every heuristic that matches a single test', () => {
     const source = `
       import { addItem } from '../src/cart'
       vi.mock('../src/cart')
@@ -136,7 +136,7 @@ describe('detectWeakTests', () => {
     )
   })
 
-  it('is silenced by a spec-trace-disable-next-line comment above the test', () => {
+  it('[REQ-022] is silenced by a spec-trace-disable-next-line comment above the test', () => {
     const source = `
       // spec-trace-disable-next-line weak-test
       it('does nothing useful', () => {
@@ -146,14 +146,14 @@ describe('detectWeakTests', () => {
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('does not analyze an it.todo test with no body', () => {
+  it('[REQ-022] does not analyze an it.todo test with no body', () => {
     const source = `
       it.todo('someday')
     `
     expect(detectWeakTests('sample.test.ts', source)).toEqual([])
   })
 
-  it('includes the enclosing describe chain in the reported name', () => {
+  it('[REQ-022] includes the enclosing describe chain in the reported name', () => {
     const source = `
       describe('REQ-014: cart quantity validation', () => {
         it('rejects zero', () => {
@@ -168,7 +168,7 @@ describe('detectWeakTests', () => {
     ])
   })
 
-  it('reports the correct file and a 1-based line number', () => {
+  it('[REQ-022] reports the correct file and a 1-based line number', () => {
     const source = `it('does nothing useful', () => {\n  const x = 1\n})`
 
     const findings = detectWeakTests('sample.test.ts', source)
@@ -177,7 +177,7 @@ describe('detectWeakTests', () => {
     expect(findings[0]?.line).toBe(1)
   })
 
-  it('reports no findings for a well-formed suite of good tests', () => {
+  it('[REQ-018][REQ-019][REQ-020][REQ-021] reports no findings for a well-formed suite of good tests', () => {
     const source = `
       import { addItem, cartTotal } from '../src/cart'
 

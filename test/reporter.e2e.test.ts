@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url)
 const fixtureDir = join(import.meta.dirname, 'fixtures', 'reporter-suite')
 const resultsPath = join(fixtureDir, '.spec-trace', 'results.json')
 
-describe('SpecTraceReporter (end-to-end)', () => {
+describe('[REQ-007][REQ-008] SpecTraceReporter (end-to-end)', () => {
   let results: ResultsFile
 
   beforeAll(() => {
