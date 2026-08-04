@@ -1,6 +1,6 @@
 {
   "name": "@leviutima/spec-trace",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "The judge that checks whether your tests actually prove the spec — not just pass it.",
   "keywords": [
     "testing",
