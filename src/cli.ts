@@ -7,7 +7,7 @@ import { loadConfig } from './config-loader.js'
 import { formatHuman, formatJson, formatMarkdownReport } from './format.js'
 import type { Violation } from './rules-engine.js'
 import { SpecParseError, type Requirement } from './spec-parser.js'
-import { gatherResults, ResultsFileNotFoundError } from './verify-pipeline.js'
+import { gatherResults, ResultsFileNotFoundError, SpecDirNotFoundError } from './verify-pipeline.js'
 
 const configArg = {
   type: 'string',
@@ -25,7 +25,11 @@ async function gatherOrExit(configPath: string | undefined): Promise<GatherOrExi
   try {
     return await gatherResults(config, process.cwd())
   } catch (error) {
-    if (error instanceof ResultsFileNotFoundError || error instanceof SpecParseError) {
+    if (
+      error instanceof ResultsFileNotFoundError ||
+      error instanceof SpecDirNotFoundError ||
+      error instanceof SpecParseError
+    ) {
       console.error(pc.red(error.message))
       process.exitCode = 1
       return undefined

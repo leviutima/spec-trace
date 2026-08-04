@@ -7,6 +7,7 @@ import { parseSpecs, type Requirement } from './spec-parser.js'
 import { detectWeakTests } from './weak-test-detector.js'
 
 export class ResultsFileNotFoundError extends Error {}
+export class SpecDirNotFoundError extends Error {}
 
 export interface GatherResultsOutput {
   requirements: Requirement[]
@@ -24,6 +25,12 @@ export async function gatherResults(
   cwd: string = process.cwd(),
 ): Promise<GatherResultsOutput> {
   const specDir = resolve(cwd, config.specDir)
+  if (!existsSync(specDir)) {
+    throw new SpecDirNotFoundError(
+      `Spec directory not found at ${specDir}. Create it (or point "specDir" in your ` +
+        'spec-trace config at the right place) and add at least one requirement before running verify.',
+    )
+  }
   const requirements = parseSpecs(specDir)
 
   const resultsPath = resolve(cwd, config.resultsFile)

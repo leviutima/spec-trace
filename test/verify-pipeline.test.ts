@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CONFIG } from '../src/config-loader.js'
-import { gatherResults, ResultsFileNotFoundError } from '../src/verify-pipeline.js'
+import { gatherResults, ResultsFileNotFoundError, SpecDirNotFoundError } from '../src/verify-pipeline.js'
 
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'pipeline', ...segments)
 
@@ -11,6 +11,13 @@ describe('gatherResults', () => {
 
     await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(ResultsFileNotFoundError)
     await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(/results\.json/)
+  })
+
+  it('[REQ-029] throws SpecDirNotFoundError with a helpful message when the spec directory does not exist', async () => {
+    const cwd = fixture('missing-specdir')
+
+    await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(SpecDirNotFoundError)
+    await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(/specs/)
   })
 
   it('[REQ-030] combines rule violations and weak-test findings from the real test source files', async () => {

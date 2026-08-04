@@ -3,12 +3,17 @@
 Requirements for the `verify` and `report` commands, and the pipeline that
 feeds them.
 
-## REQ-029 — verify fails clearly when results.json is missing
+## REQ-029 — verify fails clearly on a missing spec directory or results file
 
 **When** the configured results file does not exist on disk, **the
 system shall** raise a distinct, catchable error whose message tells the
 user to run their test suite with the spec-trace reporter configured,
-instead of crashing with an unrelated file-system error.
+instead of crashing with an unrelated file-system error. **When** the
+configured spec directory does not exist at all — the state of a
+genuinely clean project, per the acceptance criteria — **the system
+shall** likewise raise a distinct, catchable error with a message
+telling the user to create it, instead of letting a raw `ENOENT` escape
+to the terminal.
 
 ## REQ-030 — Rule violations and weak-test findings are combined, respecting the on/off toggle
 

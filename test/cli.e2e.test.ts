@@ -53,6 +53,14 @@ describe('spec-trace CLI (end-to-end)', () => {
     expect(result.stderr).toContain('results.json')
   })
 
+  it('[REQ-029][REQ-031] exits 1 with a helpful stderr message in a clean project with no specs directory at all', () => {
+    const result = runCli(['verify'], fixture('missing-specdir'))
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Spec directory not found')
+    expect(result.stderr).not.toContain('ENOENT')
+  })
+
   it('[REQ-031] only fails on warnings when --fail-on=warn and there are no errors', () => {
     const result = runCli(['verify', '--json', '--fail-on', 'warn'], fixture('clean'))
     expect(result.status).toBe(0)
