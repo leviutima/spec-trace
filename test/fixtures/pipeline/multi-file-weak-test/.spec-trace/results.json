@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "files": [
+    { "path": "test/a.test.ts", "hash": "7932dbd248c934a9eef0ebf7b058440e09517ab844cf5f67abea8303dbc1241c" },
+    { "path": "test/b.test.ts", "hash": "a327de84869a4b7c5e84b53975e9a384aeda42ab67468e3a387ca8084c4e726d" }
+  ],
+  "tests": [
+    {
+      "name": "REQ-601: part a > proves the requirement",
+      "file": "test/a.test.ts",
+      "status": "passed"
+    },
+    {
+      "name": "REQ-601: part b > also proves the requirement",
+      "file": "test/b.test.ts",
+      "status": "passed"
+    }
+  ]
+}

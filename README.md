@@ -43,6 +43,11 @@ write code. It answers three questions, in a way a machine can verify:
 npm install --save-dev @leviutima/spec-trace vitest
 ```
 
+`typescript` is an optional peerDependency, used only for the `weak-test`
+AST analysis. Most projects already have it; if yours doesn't,
+`verify`/`report` still work — they just skip `weak-test` with a one-line
+warning telling you how to enable it.
+
 ## End-to-end example
 
 Start with a requirement:

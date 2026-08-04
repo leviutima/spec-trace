@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import type TSStatic from 'typescript'
 import type { SpecTraceConfig, SpecTraceUserConfig } from './config.js'
 
 export class InvalidIdPatternError extends Error {}
+export class TypeScriptNotAvailableError extends Error {}
 
 export const DEFAULT_CONFIG: SpecTraceConfig = {
   specDir: 'specs',
@@ -69,6 +70,8 @@ async function importConfigFile(filePath: string): Promise<SpecTraceUserConfig> 
     return unwrapDefault(mod)
   }
 
+  const ts = await loadTypeScriptOrThrow(filePath)
+
   const source = readFileSync(filePath, 'utf8')
   const transpiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -85,6 +88,19 @@ async function importConfigFile(filePath: string): Promise<SpecTraceUserConfig> 
     return unwrapDefault(mod)
   } finally {
     rmSync(tempFile, { force: true })
+  }
+}
+
+async function loadTypeScriptOrThrow(configFilePath: string): Promise<typeof TSStatic> {
+  try {
+    const mod: unknown = await import('typescript')
+    return ((mod as { default?: typeof TSStatic }).default ?? mod) as typeof TSStatic
+  } catch {
+    throw new TypeScriptNotAvailableError(
+      `Cannot load "${configFilePath}": typescript is not installed. It's an optional ` +
+        'peerDependency, needed only to load a .ts config file — install it, or use a ' +
+        '.js/.mjs spec-trace config instead.',
+    )
   }
 }
 

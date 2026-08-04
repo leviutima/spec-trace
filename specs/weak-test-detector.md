@@ -39,3 +39,11 @@ describe/it name chain, the source file, and the 1-based line number of
 the `it`/`test` call. **When** a `// spec-trace-disable-next-line
 weak-test` comment appears on the line directly above an `it`/`test`
 call, **the system shall** suppress any finding for that test.
+
+## REQ-040 — Degrades without crashing when typescript is unavailable
+
+**When** `typescript` (an optional peerDependency) cannot be loaded,
+**the system shall** return `undefined` — not an empty array — so a
+caller can tell "analyzed this file and found nothing" apart from
+"could not analyze this file at all", instead of throwing or silently
+reporting a false-clean result.

@@ -58,7 +58,7 @@ export async function gatherResults(
 
   const weakTestSeverity = config.rules['weak-test'] ?? 'warn'
   const weakTestViolations =
-    weakTestSeverity === 'off' ? [] : findWeakTestViolations(resultsFile, cwd, weakTestSeverity)
+    weakTestSeverity === 'off' ? [] : await findWeakTestViolations(resultsFile, cwd, weakTestSeverity)
 
   return { requirements, violations: [...ruleViolations, ...weakTestViolations] }
 }
@@ -136,11 +136,17 @@ function matchesPattern(fileName: string, pattern: string): boolean {
   return rest.startsWith('*') ? fileName.endsWith(rest.slice(1)) : fileName === rest
 }
 
-function findWeakTestViolations(
+/**
+ * typescript is an optional peerDependency (only detectWeakTests touches
+ * it). When it can't be loaded, detectWeakTests returns undefined instead
+ * of throwing — this emits exactly one weak-test-unavailable violation
+ * for the whole run, not one per file, and stops scanning further files.
+ */
+async function findWeakTestViolations(
   resultsFile: ResultsFile,
   cwd: string,
   severity: Exclude<Severity, 'off'>,
-): Violation[] {
+): Promise<Violation[]> {
   const testFiles = Array.from(new Set(resultsFile.tests.map((t) => t.file)))
   const violations: Violation[] = []
 
@@ -149,7 +155,20 @@ function findWeakTestViolations(
     if (!existsSync(absolutePath)) continue
 
     const source = readFileSync(absolutePath, 'utf8')
-    for (const finding of detectWeakTests(file, source)) {
+    const findings = await detectWeakTests(file, source)
+
+    if (findings === undefined) {
+      violations.push({
+        rule: 'weak-test',
+        severity,
+        message:
+          'weak-test-unavailable: typescript is not installed, so test files could not be statically ' +
+          'analyzed. Install typescript (it is an optional peerDependency) to enable this check.',
+      })
+      break
+    }
+
+    for (const finding of findings) {
       violations.push({
         rule: 'weak-test',
         severity,

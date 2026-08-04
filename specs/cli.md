@@ -23,6 +23,13 @@ statically reading every test source file that produced a result.
 **When** the `weak-test` rule is set to `off`, **the system shall** skip
 reading and analyzing those test files entirely.
 
+## REQ-042 — Exactly one weak-test-unavailable violation, not one per file
+
+**When** `detectWeakTests` reports that typescript is unavailable, **the
+system shall** emit exactly one `weak-test` violation for the whole
+run — not one per test file — and stop scanning further files, since
+every subsequent file would fail the same way for the same reason.
+
 ## REQ-031 — verify's exit code respects violations and --fail-on
 
 **When** `spec-trace verify` runs, **the system shall** exit 0 if no

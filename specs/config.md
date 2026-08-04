@@ -37,3 +37,12 @@ even if it does not follow the `spec-trace.config.*` naming convention.
 invalid pattern and the underlying reason, instead of letting an
 unrelated `SyntaxError` surface later from deep inside the parser or
 rules engine the first time the pattern is actually compiled.
+
+## REQ-041 — A .ts config without typescript installed fails clearly
+
+**When** the resolved config file ends in `.ts` and `typescript` (an
+optional peerDependency) cannot be loaded, **the system shall** raise a
+distinct, catchable error naming the config file and telling the caller
+to either install typescript or use a `.js`/`.mjs` config file instead,
+rather than letting the underlying import failure surface as an opaque
+module-resolution error.

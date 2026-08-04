@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import pc from 'picocolors'
-import { InvalidIdPatternError, loadConfig } from './config-loader.js'
+import { InvalidIdPatternError, loadConfig, TypeScriptNotAvailableError } from './config-loader.js'
 import { formatHuman, formatJson, formatMarkdownReport } from './format.js'
 import type { Violation } from './rules-engine.js'
 import { SpecParseError, type Requirement } from './spec-parser.js'
@@ -28,7 +28,8 @@ async function gatherOrExit(configPath: string | undefined): Promise<GatherOrExi
       error instanceof ResultsFileNotFoundError ||
       error instanceof SpecDirNotFoundError ||
       error instanceof SpecParseError ||
-      error instanceof InvalidIdPatternError
+      error instanceof InvalidIdPatternError ||
+      error instanceof TypeScriptNotAvailableError
     ) {
       console.error(pc.red(error.message))
       process.exitCode = 1
