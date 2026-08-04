@@ -19,13 +19,14 @@ interface HeadingLine {
 }
 
 const HEADING_PATTERN = /^(#{1,6})\s+(.*)$/
-const REQUIREMENT_ID_PATTERN = /^(REQ-\d+)\b/
+const DEFAULT_ID_PATTERN = 'REQ-\\d+'
 const IGNORE_MARKER = '<!-- spec-trace:ignore -->'
 const MIN_REQUIREMENT_LEVEL = 2
 const MAX_REQUIREMENT_LEVEL = 6
 
-export function parseSpecs(dir: string): Requirement[] {
-  const requirements = findMarkdownFiles(dir).flatMap(parseFile)
+export function parseSpecs(dir: string, idPattern: string = DEFAULT_ID_PATTERN): Requirement[] {
+  const idRegex = new RegExp(`^(${idPattern})\\b`)
+  const requirements = findMarkdownFiles(dir).flatMap((file) => parseFile(file, idRegex))
   assertNoDuplicates(requirements)
   return requirements
 }
@@ -46,7 +47,7 @@ function findMarkdownFiles(dir: string): string[] {
   return files.sort()
 }
 
-function parseFile(file: string): Requirement[] {
+function parseFile(file: string, idRegex: RegExp): Requirement[] {
   const lines = readFileSync(file, 'utf8').split('\n')
   const headings = collectHeadings(lines)
 
@@ -55,7 +56,7 @@ function parseFile(file: string): Requirement[] {
   for (const [index, heading] of headings.entries()) {
     if (heading.level < MIN_REQUIREMENT_LEVEL || heading.level > MAX_REQUIREMENT_LEVEL) continue
 
-    const idMatch = REQUIREMENT_ID_PATTERN.exec(heading.text)
+    const idMatch = idRegex.exec(heading.text)
     if (!idMatch || idMatch[1] === undefined) continue
 
     const id = idMatch[1]

@@ -23,6 +23,7 @@ export interface CheckRulesOptions {
   rules?: SpecTraceRuleConfig
   ignore?: string[]
   fileState?: FileState
+  idPattern?: string
 }
 
 const DEFAULT_SEVERITIES: Required<SpecTraceRuleConfig> = {
@@ -36,7 +37,7 @@ const DEFAULT_SEVERITIES: Required<SpecTraceRuleConfig> = {
   'stale-results': 'error',
 }
 
-const REQUIREMENT_ID_TOKEN = /REQ-\d+/g
+const DEFAULT_ID_PATTERN = 'REQ-\\d+'
 
 /**
  * Pure comparison between what the spec demands and what the test run
@@ -49,6 +50,7 @@ export function checkRules(
 ): Violation[] {
   const severities: Required<SpecTraceRuleConfig> = { ...DEFAULT_SEVERITIES, ...options.rules }
   const ignoreIds = new Set(options.ignore ?? [])
+  const idTokenRegex = new RegExp(options.idPattern ?? DEFAULT_ID_PATTERN, 'g')
   const violations: Violation[] = []
 
   const emit = (violation: Omit<Violation, 'severity'>): void => {
@@ -79,7 +81,7 @@ export function checkRules(
   const coverage = new Map<string, TestResult[]>()
 
   for (const testResult of tests) {
-    const ids = extractRequirementIds(testResult.name)
+    const ids = extractRequirementIds(testResult.name, idTokenRegex)
 
     if (ids.length === 0) {
       emit({
@@ -190,6 +192,6 @@ function checkStaleResults(fileState: FileState, emit: (violation: Omit<Violatio
   }
 }
 
-function extractRequirementIds(text: string): string[] {
-  return Array.from(new Set(text.match(REQUIREMENT_ID_TOKEN) ?? []))
+function extractRequirementIds(text: string, idTokenRegex: RegExp): string[] {
+  return Array.from(new Set(text.match(idTokenRegex) ?? []))
 }

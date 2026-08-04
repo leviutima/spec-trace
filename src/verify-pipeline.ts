@@ -34,7 +34,7 @@ export async function gatherResults(
         'spec-trace config at the right place) and add at least one requirement before running verify.',
     )
   }
-  const requirements = parseSpecs(specDir)
+  const requirements = parseSpecs(specDir, config.idPattern)
 
   const resultsPath = resolve(cwd, config.resultsFile)
   if (!existsSync(resultsPath)) {
@@ -49,6 +49,7 @@ export async function gatherResults(
   const ruleViolations = checkRules(requirements, resultsFile.tests, {
     rules: config.rules,
     ignore: config.ignore,
+    idPattern: config.idPattern,
     fileState: {
       recorded: reconcileRecordedFiles(resultsFile),
       onDisk: findTestFilesOnDisk(cwd, config.testMatch, config.testIgnore),

@@ -48,3 +48,13 @@ the marker's literal HTML-comment form, since doing so here would flag
 this very requirement as ignored — a real bug this project's own
 dogfooding run caught. See `test/fixtures/parser/ignore/requirements.md`
 for the marker used verbatim.
+
+## REQ-037 — idPattern controls which heading ids are recognized
+
+**When** the caller supplies a custom `idPattern` (default `REQ-\d+`),
+**the system shall** use that pattern — not the hardcoded default — to
+decide whether a heading's leading token is a requirement id. A heading
+whose id matches the *default* pattern **shall not** be recognized as a
+requirement when a different `idPattern` is configured, and vice versa:
+`idPattern` changes what counts as a requirement, it isn't a label
+applied after the fact.

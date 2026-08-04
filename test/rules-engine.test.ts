@@ -272,4 +272,29 @@ describe('checkRules', () => {
       expect(violations).toContainEqual(expect.objectContaining({ rule: 'stale-results', severity: 'warn' }))
     })
   })
+
+  describe('[REQ-038] idPattern', () => {
+    it('matches a custom id shape when idPattern is configured', () => {
+      const violations = checkRules(
+        [req({ id: 'STORY-42' })],
+        [testResult({ name: 'STORY-42: covered', status: 'passed' })],
+        { idPattern: 'STORY-\\d+' },
+      )
+
+      expect(violations).toEqual([])
+    })
+
+    it('does not treat a default-shaped id as a match when idPattern is set to something else', () => {
+      const violations = checkRules(
+        [req({ id: 'STORY-42' })],
+        [testResult({ name: 'REQ-999: wrong shape entirely', status: 'passed' })],
+        { idPattern: 'STORY-\\d+' },
+      )
+
+      expect(violations).toContainEqual(
+        expect.objectContaining({ rule: 'uncovered-requirement', requirementId: 'STORY-42' }),
+      )
+      expect(violations).toContainEqual(expect.objectContaining({ rule: 'orphan-test' }))
+    })
+  })
 })

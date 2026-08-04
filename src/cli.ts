@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import pc from 'picocolors'
-import { loadConfig } from './config-loader.js'
+import { InvalidIdPatternError, loadConfig } from './config-loader.js'
 import { formatHuman, formatJson, formatMarkdownReport } from './format.js'
 import type { Violation } from './rules-engine.js'
 import { SpecParseError, type Requirement } from './spec-parser.js'
@@ -20,15 +20,15 @@ interface GatherOrExit {
 }
 
 async function gatherOrExit(configPath: string | undefined): Promise<GatherOrExit | undefined> {
-  const config = await loadConfig(configPath || undefined, process.cwd())
-
   try {
+    const config = await loadConfig(configPath || undefined, process.cwd())
     return await gatherResults(config, process.cwd())
   } catch (error) {
     if (
       error instanceof ResultsFileNotFoundError ||
       error instanceof SpecDirNotFoundError ||
-      error instanceof SpecParseError
+      error instanceof SpecParseError ||
+      error instanceof InvalidIdPatternError
     ) {
       console.error(pc.red(error.message))
       process.exitCode = 1

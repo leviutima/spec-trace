@@ -29,3 +29,11 @@ on top of the defaults, including a deep merge of the `rules` object.
 **When** the caller supplies an explicit config file path, **the system
 shall** load that file instead of searching for the default file names,
 even if it does not follow the `spec-trace.config.*` naming convention.
+
+## REQ-039 — An invalid idPattern is rejected at config-load time
+
+**When** the configured `idPattern` is not a valid regular expression,
+**the system shall** raise a distinct, catchable error naming the
+invalid pattern and the underlying reason, instead of letting an
+unrelated `SyntaxError` surface later from deep inside the parser or
+rules engine the first time the pattern is actually compiled.

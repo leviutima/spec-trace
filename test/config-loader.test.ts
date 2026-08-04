@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CONFIG, loadConfig } from '../src/config-loader.js'
+import { DEFAULT_CONFIG, InvalidIdPatternError, loadConfig } from '../src/config-loader.js'
 
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'config', ...segments)
 
@@ -37,5 +37,11 @@ describe('loadConfig', () => {
       ...DEFAULT_CONFIG,
       idPattern: 'CUSTOM-\\d+',
     })
+  })
+
+  it('[REQ-039] rejects an idPattern that is not a valid regular expression', async () => {
+    await expect(loadConfig(undefined, fixture('invalid-id-pattern'))).rejects.toThrow(
+      InvalidIdPatternError,
+    )
   })
 })

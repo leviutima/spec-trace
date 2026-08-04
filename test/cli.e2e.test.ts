@@ -91,6 +91,27 @@ describe('spec-trace CLI (end-to-end)', () => {
     expect(violations).toContainEqual(expect.objectContaining({ rule: 'stale-results' }))
   })
 
+  it('[REQ-037][REQ-038] recognizes a custom idPattern when --config points at it, passing cleanly', () => {
+    const result = runCli(
+      ['verify', '--json', '--config', 'story.config.ts'],
+      fixture('custom-id-pattern'),
+    )
+
+    expect(result.status).toBe(0)
+    const violations = JSON.parse(result.stdout) as Violation[]
+    expect(violations).toEqual([])
+  })
+
+  it('[REQ-037][REQ-038] does not recognize that same id under the default REQ-\\d+ pattern', () => {
+    const result = runCli(['verify', '--json'], fixture('custom-id-pattern'))
+
+    const violations = JSON.parse(result.stdout) as Violation[]
+    expect(violations).not.toContainEqual(
+      expect.objectContaining({ rule: 'uncovered-requirement', requirementId: 'STORY-42' }),
+    )
+    expect(violations).toContainEqual(expect.objectContaining({ rule: 'orphan-test' }))
+  })
+
   it('[REQ-032] writes an agent-readable markdown report and exits 0 regardless of violations', () => {
     const result = runCli(['report'], fixture('happy-path'))
 

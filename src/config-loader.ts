@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import type { SpecTraceConfig, SpecTraceUserConfig } from './config.js'
 
+export class InvalidIdPatternError extends Error {}
+
 export const DEFAULT_CONFIG: SpecTraceConfig = {
   specDir: 'specs',
   resultsFile: '.spec-trace/results.json',
@@ -32,11 +34,24 @@ export async function loadConfig(
 
   const userConfig = await importConfigFile(resolvedPath)
 
-  return {
+  const merged: SpecTraceConfig = {
     ...DEFAULT_CONFIG,
     ...userConfig,
     rules: { ...DEFAULT_CONFIG.rules, ...userConfig.rules },
     ignore: userConfig.ignore ?? DEFAULT_CONFIG.ignore,
+  }
+
+  assertValidIdPattern(merged.idPattern)
+
+  return merged
+}
+
+function assertValidIdPattern(idPattern: string): void {
+  try {
+    new RegExp(idPattern)
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new InvalidIdPatternError(`Invalid "idPattern" in spec-trace config: "${idPattern}" (${reason})`)
   }
 }
 

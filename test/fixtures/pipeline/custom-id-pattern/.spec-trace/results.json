@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "files": [
+    { "path": "test/story.test.ts", "hash": "3d671ac87239215743499b07f64ce632fd4222c74567639103b204a0fc26e81a" }
+  ],
+  "tests": [
+    {
+      "name": "STORY-42: custom id pattern > is covered when idPattern matches STORY-\\d+",
+      "file": "test/story.test.ts",
+      "status": "passed"
+    }
+  ]
+}

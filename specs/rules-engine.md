@@ -79,3 +79,12 @@ a test an agent wrote and never ran, or a test file that was deleted and
 never re-run to prove the deletion didn't remove coverage. **When** no
 file-state information is supplied, **the system shall** skip this rule
 entirely rather than treat its absence as passing.
+
+## REQ-038 — idPattern controls which ids are recognized in test names
+
+**When** the caller supplies a custom `idPattern` (default `REQ-\d+`),
+**the system shall** use that pattern — not the hardcoded default — when
+extracting requirement ids from a test's name for coverage, orphan-test,
+and unknown-requirement purposes. A test name containing a token matching
+the *default* pattern **shall not** be treated as referencing any
+requirement when a different `idPattern` is configured.

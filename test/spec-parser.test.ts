@@ -72,4 +72,16 @@ describe('parseSpecs', () => {
     expect(ignored?.ignored).toBe(true)
     expect(active?.ignored).toBe(false)
   })
+
+  it('[REQ-037] recognizes a custom idPattern instead of the default REQ-\\d+', () => {
+    const requirements = parseSpecs(fixture('custom-pattern'), 'STORY-\\d+')
+
+    expect(requirements.map((r) => r.id)).toEqual(['STORY-42'])
+  })
+
+  it('[REQ-037] does not recognize a custom-pattern id when using the default pattern', () => {
+    const requirements = parseSpecs(fixture('custom-pattern'))
+
+    expect(requirements.map((r) => r.id)).toEqual(['REQ-050'])
+  })
 })
