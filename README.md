@@ -94,17 +94,21 @@ export default defineConfig({
 ```
 
 Run your suite once to produce `.spec-trace/results.json`, then ask the
-external judge:
+external judge. `weak-test` is `warn` by default since it's a heuristic
+(more on that below) — `--fail-on warn` is what makes it actually gate:
 
 ```sh
-$ npx spec-trace verify
+$ npx spec-trace verify --fail-on warn
 [warn] weak-test Test "REQ-014: cart quantity validation > rejects a non-positive quantity" looks weak: non-discriminant-assertions (test/cart.test.ts:5)
 
 0 errors, 1 warning
+$ echo $?
+1
 ```
 
 Green tests, wrong code, and `spec-trace` is the only thing in the loop
-that noticed.
+that noticed — and with `--fail-on warn`, the only thing that actually
+stopped it from merging.
 
 ## How it works
 
@@ -227,12 +231,41 @@ export default defineConfig({
   specDir: 'specs',
   resultsFile: '.spec-trace/results.json',
   idPattern: 'REQ-\\d+',
+  testMatch: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+  testIgnore: [],
   rules: {
     'orphan-test': 'warn',
     'weak-test': 'warn',
   },
   ignore: ['REQ-001'],
 })
+```
+
+`testIgnore` is a plain path-prefix exclusion (not a glob) for directories
+that legitimately contain `*.test.ts`-named files never meant to run
+directly — this project's own `test/fixtures/` is exactly that case.
+
+## Agent integration
+
+spec-trace is passive by default: something has to remember to call it.
+The point lands when it's in the loop the agent already follows on every
+task. See [`AGENTS.md`](./AGENTS.md) for this repository's own rules, and
+copy the block below into your project's `AGENTS.md` / `CLAUDE.md`:
+
+```md
+## Definition of done
+
+A task is only done when:
+
+1. `npm test` runs the full suite (produces `.spec-trace/results.json`)
+2. `npx spec-trace report` writes `.spec-trace/report.md`
+3. You've read `.spec-trace/report.md` and fixed everything until
+   `npx spec-trace verify` is clean
+
+Never mark a task complete with open violations.
+Never silence `weak-test` with `spec-trace-disable-next-line` just to
+close the gate — only silence it when you can explain why the test is
+actually strong despite the heuristic flagging it.
 ```
 
 ## Roadmap

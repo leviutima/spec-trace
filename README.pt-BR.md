@@ -94,17 +94,22 @@ export default defineConfig({
 ```
 
 Rode sua suíte uma vez para gerar `.spec-trace/results.json`, e então
-pergunte ao juiz externo:
+pergunte ao juiz externo. `weak-test` é `warn` por padrão porque é uma
+heurística (mais sobre isso abaixo) — `--fail-on warn` é o que faz ela
+realmente barrar:
 
 ```sh
-$ npx spec-trace verify
+$ npx spec-trace verify --fail-on warn
 [warn] weak-test Test "REQ-014: cart quantity validation > rejects a non-positive quantity" looks weak: non-discriminant-assertions (test/cart.test.ts:5)
 
 0 errors, 1 warning
+$ echo $?
+1
 ```
 
 Teste verde, código errado, e o `spec-trace` é a única coisa no fluxo que
-percebeu.
+percebeu — e com `--fail-on warn`, a única coisa que realmente impediu
+isso de ser mergeado.
 
 ## Como funciona
 
@@ -229,12 +234,42 @@ export default defineConfig({
   specDir: 'specs',
   resultsFile: '.spec-trace/results.json',
   idPattern: 'REQ-\\d+',
+  testMatch: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+  testIgnore: [],
   rules: {
     'orphan-test': 'warn',
     'weak-test': 'warn',
   },
   ignore: ['REQ-001'],
 })
+```
+
+`testIgnore` é uma exclusão simples por prefixo de caminho (não é glob)
+para diretórios que legitimamente contêm arquivos `*.test.ts` que nunca
+são executados diretamente — o próprio `test/fixtures/` deste projeto é
+exatamente esse caso.
+
+## Integração com agente
+
+Por padrão o spec-trace é passivo: alguém precisa lembrar de chamá-lo.
+O valor real aparece quando ele entra no loop que o agente já segue em
+toda task. Veja [`AGENTS.md`](./AGENTS.md) para as regras deste
+repositório, e copie o bloco abaixo no `AGENTS.md` / `CLAUDE.md` do seu
+projeto:
+
+```md
+## Definition of done
+
+Uma task só está pronta quando:
+
+1. `npm test` roda a suíte completa (gera `.spec-trace/results.json`)
+2. `npx spec-trace report` escreve `.spec-trace/report.md`
+3. Você leu `.spec-trace/report.md` e corrigiu tudo até `npx spec-trace verify` sair limpo
+
+Nunca marque uma task como concluída com violações abertas.
+Nunca silencie `weak-test` com `spec-trace-disable-next-line` só para
+fechar o gate — silencie apenas quando conseguir explicar por que o
+teste é forte apesar da heurística sinalizar.
 ```
 
 ## Roadmap
