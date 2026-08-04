@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { dirname, isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join, relative } from 'node:path'
 import type { File, Reporter, Task, Vitest } from 'vitest'
 
 export type TestStatus = 'passed' | 'failed' | 'skipped' | 'todo'
@@ -39,9 +39,13 @@ export class SpecTraceReporter implements Reporter {
   }
 
   onFinished(files: File[] = []): void {
-    const tests = files.flatMap((file) =>
-      file.tasks.flatMap((task) => collectTestResults(task, file.filepath, [])),
-    )
+    const tests = files.flatMap((file) => {
+      // Recorded relative to the project root (POSIX-style, even on
+      // Windows) so results.json is portable and reads the same as the
+      // file paths a user would type in their own terminal.
+      const relativePath = relative(this.root, file.filepath).split('\\').join('/')
+      return file.tasks.flatMap((task) => collectTestResults(task, relativePath, []))
+    })
 
     const payload: ResultsFile = { generatedAt: new Date().toISOString(), tests }
     const outputPath = isAbsolute(this.outputFile) ? this.outputFile : join(this.root, this.outputFile)

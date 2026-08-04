@@ -59,4 +59,9 @@ describe('[REQ-007][REQ-008] SpecTraceReporter (end-to-end)', () => {
     const test = results.tests.find((t) => t.name === 'orphan test with no requirement id')
     expect(test?.status).toBe('passed')
   })
+
+  it('[REQ-007] records the file path relative to the project root, not absolute', () => {
+    const test = results.tests.find((t) => t.name === 'REQ-100: sample suite > passes')
+    expect(test?.file).toBe('sample.test.ts')
+  })
 })

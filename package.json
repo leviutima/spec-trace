@@ -68,6 +68,10 @@
     "type": "git",
     "url": "git+https://github.com/leviutima/spec-trace.git"
   },
+  "homepage": "https://github.com/leviutima/spec-trace#readme",
+  "bugs": {
+    "url": "https://github.com/leviutima/spec-trace/issues"
+  },
   "publishConfig": {
     "access": "public"
   }
