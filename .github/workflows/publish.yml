@@ -25,6 +25,10 @@ jobs:
       - run: npm test
       - run: npm run verify
 
+      # OIDC trusted publishing needs npm >= 11.5.1. The npm bundled with
+      # actions/setup-node's Node 20 is typically older than that.
+      - run: npm install -g npm@latest
+
       # No NPM_TOKEN secret: this relies on npm's OIDC trusted publishing.
       # The package must be configured on npmjs.com (Settings > Trusted
       # Publisher) to trust this repo + workflow file before this step
