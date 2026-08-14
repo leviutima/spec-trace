@@ -1,3 +1,4 @@
+export { CliError, type CliErrorOptions } from './cli-error.js'
 export {
   defineConfig,
   type SpecTraceConfig,

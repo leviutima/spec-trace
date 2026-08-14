@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
+import { CliError } from './cli-error.js'
 import type { SpecTraceConfig } from './config.js'
 import type { ResultsFile, TestFileFingerprint } from './reporter.js'
 import { checkRules, type Severity, type Violation } from './rules-engine.js'
@@ -8,9 +9,25 @@ import { parseSpecs, type Requirement } from './spec-parser.js'
 import { detectWeakTests } from './weak-test-detector.js'
 
 const IGNORED_DIRS = new Set(['node_modules', 'dist', '.git', '.spec-trace', 'coverage'])
+const BOM = '﻿'
 
-export class ResultsFileNotFoundError extends Error {}
-export class SpecDirNotFoundError extends Error {}
+export class ResultsFileNotFoundError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'RESULTS_FILE_NOT_FOUND', hint })
+  }
+}
+
+export class SpecDirNotFoundError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'SPEC_DIR_NOT_FOUND', hint })
+  }
+}
+
+export class ResultsJsonParseError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'RESULTS_JSON_PARSE_ERROR', hint })
+  }
+}
 
 export interface GatherResultsOutput {
   requirements: Requirement[]
@@ -44,7 +61,7 @@ export async function gatherResults(
     )
   }
 
-  const resultsFile = JSON.parse(readFileSync(resultsPath, 'utf8')) as ResultsFile
+  const resultsFile = parseResultsFile(resultsPath)
 
   const ruleViolations = checkRules(requirements, resultsFile.tests, {
     rules: config.rules,
@@ -61,6 +78,29 @@ export async function gatherResults(
     weakTestSeverity === 'off' ? [] : await findWeakTestViolations(resultsFile, cwd, weakTestSeverity)
 
   return { requirements, violations: [...ruleViolations, ...weakTestViolations] }
+}
+
+/**
+ * PowerShell's default UTF-8 file writes add a BOM, which JSON.parse
+ * rejects outright — stripped unconditionally here since a BOM is never
+ * meaningful JSON content. If the file still doesn't parse after that
+ * (hand-edited, truncated, or genuinely corrupt), the raw SyntaxError is
+ * wrapped so it never surfaces as an unformatted stack trace to the user.
+ */
+function parseResultsFile(resultsPath: string): ResultsFile {
+  const raw = readFileSync(resultsPath, 'utf8')
+  const content = raw.startsWith(BOM) ? raw.slice(BOM.length) : raw
+
+  try {
+    return JSON.parse(content) as ResultsFile
+  } catch {
+    throw new ResultsJsonParseError(
+      `Could not parse ${resultsPath} as JSON.`,
+      'The file is likely corrupt or was hand-edited — a byte-order-mark added by ' +
+        'PowerShell when creating the file on Windows is a common cause. Delete it and ' +
+        're-run your test suite with the spec-trace reporter configured to regenerate it.',
+    )
+  }
 }
 
 /**

@@ -63,6 +63,29 @@ system shall** treat that file as recorded with a hash that can never
 match real content, so it still surfaces as a `stale-results` violation
 instead of silently passing.
 
+## REQ-043 — Expected CLI errors print a short message and hint, never a raw stack
+
+**When** `gatherOrExit` catches an error that is a `CliError` (every expected
+failure mode — missing results file, missing spec directory, malformed spec,
+invalid `idPattern`, unavailable typescript peerDependency, unparsable
+results.json — is one), **the system shall** print that error's `message`
+and, if present, its `hint`, to stderr in red, and **shall not** print the
+error's stack trace. **When** `--verbose` is passed to `verify` or `report`,
+or the `DEBUG` environment variable is exactly `spec-trace`, **the system
+shall** also print the full stack trace. **When** an error is not a
+`CliError` — a genuine bug in spec-trace itself — **the system shall** let
+it propagate uncaught rather than swallowing or reformatting it.
+
+## REQ-044 — results.json is parsed BOM-tolerantly, with a clear error otherwise
+
+**When** `results.json` begins with a UTF-8 byte-order-mark, **the system
+shall** strip it before parsing, since PowerShell's default file encoding on
+Windows commonly adds one. **When** the file's content still cannot be
+parsed as JSON after that, **the system shall** raise a distinct, catchable
+error naming the absolute path and citing a BOM or manual hand-editing as
+the likely cause, instead of letting a raw `SyntaxError` and its stack
+trace escape to the terminal.
+
 ## REQ-036 — testIgnore excludes directories the disk walker should not treat as tests
 
 **When** the config's `testIgnore` array (default: empty) contains a

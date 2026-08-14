@@ -2,10 +2,20 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type TSStatic from 'typescript'
+import { CliError } from './cli-error.js'
 import type { SpecTraceConfig, SpecTraceUserConfig } from './config.js'
 
-export class InvalidIdPatternError extends Error {}
-export class TypeScriptNotAvailableError extends Error {}
+export class InvalidIdPatternError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'INVALID_ID_PATTERN', hint })
+  }
+}
+
+export class TypeScriptNotAvailableError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'TYPESCRIPT_NOT_AVAILABLE', hint })
+  }
+}
 
 export const DEFAULT_CONFIG: SpecTraceConfig = {
   specDir: 'specs',

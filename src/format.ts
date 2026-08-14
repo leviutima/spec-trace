@@ -1,4 +1,5 @@
 import pc from 'picocolors'
+import type { CliError } from './cli-error.js'
 import type { RuleId, Violation } from './rules-engine.js'
 import type { Requirement } from './spec-parser.js'
 
@@ -20,6 +21,21 @@ const ACTIONS: Record<RuleId, (violation: Violation) => string> = {
 
 export function actionFor(violation: Violation): string {
   return ACTIONS[violation.rule](violation)
+}
+
+export interface FormatCliErrorOptions {
+  verbose: boolean
+}
+
+/**
+ * REQ-043: every expected CLI failure prints its message and hint, never a
+ * raw stack — the stack only appears with --verbose or DEBUG=spec-trace.
+ */
+export function formatCliError(error: CliError, options: FormatCliErrorOptions): string {
+  const lines = [pc.red(error.message)]
+  if (error.hint) lines.push(pc.dim(error.hint))
+  if (options.verbose && error.stack) lines.push('', error.stack)
+  return lines.join('\n')
 }
 
 export function formatJson(violations: Violation[]): string {

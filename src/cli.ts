@@ -3,35 +3,42 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import pc from 'picocolors'
-import { InvalidIdPatternError, loadConfig, TypeScriptNotAvailableError } from './config-loader.js'
-import { formatHuman, formatJson, formatMarkdownReport } from './format.js'
+import { CliError } from './cli-error.js'
+import { loadConfig } from './config-loader.js'
+import { formatCliError, formatHuman, formatJson, formatMarkdownReport } from './format.js'
 import type { Violation } from './rules-engine.js'
-import { SpecParseError, type Requirement } from './spec-parser.js'
-import { gatherResults, ResultsFileNotFoundError, SpecDirNotFoundError } from './verify-pipeline.js'
+import type { Requirement } from './spec-parser.js'
+import { gatherResults } from './verify-pipeline.js'
 
 const configArg = {
   type: 'string',
   description: 'Path to a config file (defaults to spec-trace.config.ts/js in the current directory)',
 } as const
 
+const verboseArg = {
+  type: 'boolean',
+  description: 'Show the full stack trace for CLI errors instead of just the message and hint',
+} as const
+
+function isVerbose(verboseFlag: boolean | undefined): boolean {
+  return Boolean(verboseFlag) || process.env['DEBUG'] === 'spec-trace'
+}
+
 interface GatherOrExit {
   requirements: Requirement[]
   violations: Violation[]
 }
 
-async function gatherOrExit(configPath: string | undefined): Promise<GatherOrExit | undefined> {
+async function gatherOrExit(
+  configPath: string | undefined,
+  verbose: boolean,
+): Promise<GatherOrExit | undefined> {
   try {
     const config = await loadConfig(configPath || undefined, process.cwd())
     return await gatherResults(config, process.cwd())
   } catch (error) {
-    if (
-      error instanceof ResultsFileNotFoundError ||
-      error instanceof SpecDirNotFoundError ||
-      error instanceof SpecParseError ||
-      error instanceof InvalidIdPatternError ||
-      error instanceof TypeScriptNotAvailableError
-    ) {
-      console.error(pc.red(error.message))
+    if (error instanceof CliError) {
+      console.error(formatCliError(error, { verbose }))
       process.exitCode = 1
       return undefined
     }
@@ -54,9 +61,11 @@ const verify = defineCommand({
       description: 'Minimum severity that causes a non-zero exit code: error or warn',
       default: 'error',
     },
+    verbose: verboseArg,
   },
   async run({ args }) {
-    const gathered = await gatherOrExit(args.config)
+    const verbose = isVerbose(args.verbose)
+    const gathered = await gatherOrExit(args.config, verbose)
     if (!gathered) return
 
     const { requirements, violations } = gathered
@@ -86,9 +95,10 @@ const report = defineCommand({
   },
   args: {
     config: configArg,
+    verbose: verboseArg,
   },
   async run({ args }) {
-    const gathered = await gatherOrExit(args.config)
+    const gathered = await gatherOrExit(args.config, isVerbose(args.verbose))
     if (!gathered) return
 
     const { requirements, violations } = gathered

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
+import { CliError } from './cli-error.js'
 
 export interface Requirement {
   id: string
@@ -10,7 +11,11 @@ export interface Requirement {
   ignored: boolean
 }
 
-export class SpecParseError extends Error {}
+export class SpecParseError extends CliError {
+  constructor(message: string, hint?: string) {
+    super(message, { code: 'SPEC_PARSE_ERROR', hint })
+  }
+}
 
 interface HeadingLine {
   level: number

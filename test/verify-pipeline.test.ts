@@ -1,7 +1,12 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CONFIG } from '../src/config-loader.js'
-import { gatherResults, ResultsFileNotFoundError, SpecDirNotFoundError } from '../src/verify-pipeline.js'
+import {
+  gatherResults,
+  ResultsFileNotFoundError,
+  ResultsJsonParseError,
+  SpecDirNotFoundError,
+} from '../src/verify-pipeline.js'
 
 const fixture = (...segments: string[]) => join(import.meta.dirname, 'fixtures', 'pipeline', ...segments)
 
@@ -95,6 +100,23 @@ describe('gatherResults', () => {
       expect(violations).toContainEqual(
         expect.objectContaining({ rule: 'stale-results', file: 'test/example.test.ts' }),
       )
+    })
+  })
+
+  describe('[REQ-044] BOM-tolerant results.json parsing', () => {
+    it('strips a leading byte-order-mark and parses the file normally', async () => {
+      const cwd = fixture('bom-results')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations.some((v) => v.requirementId === 'REQ-201')).toBe(false)
+    })
+
+    it('raises ResultsJsonParseError naming the path when the file still is not valid JSON', async () => {
+      const cwd = fixture('malformed-results')
+
+      await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(ResultsJsonParseError)
+      await expect(gatherResults(DEFAULT_CONFIG, cwd)).rejects.toThrow(/results\.json/)
     })
   })
 
