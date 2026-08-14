@@ -1,0 +1,7 @@
+{
+  "name": "esm-fresh",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

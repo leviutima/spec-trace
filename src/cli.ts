@@ -7,6 +7,7 @@ import { filterBaselined, readBaseline, writeBaseline } from './baseline.js'
 import { CliError } from './cli-error.js'
 import { loadConfig } from './config-loader.js'
 import { formatCliError, formatHuman, formatJson, formatMarkdownReport } from './format.js'
+import { runInit } from './init/index.js'
 import type { Violation } from './rules-engine.js'
 import type { Requirement } from './spec-parser.js'
 import { gatherResults } from './verify-pipeline.js'
@@ -130,6 +131,40 @@ const report = defineCommand({
   },
 })
 
+const init = defineCommand({
+  meta: {
+    name: 'init',
+    description: 'Scaffold spec-trace into the current project (specs/, test/, vitest config, npm scripts)',
+  },
+  args: {
+    lang: { type: 'string', description: 'Template language: en or pt-BR (defaults to the environment locale)' },
+    'dry-run': { type: 'boolean', description: 'Print the plan without writing anything' },
+    force: {
+      type: 'boolean',
+      description: "Overwrite files init previously generated (never touches other specs/*.md)",
+    },
+    verbose: verboseArg,
+  },
+  run({ args }) {
+    const verbose = isVerbose(args.verbose)
+    try {
+      const lines = runInit(process.cwd(), {
+        lang: args.lang,
+        dryRun: args['dry-run'],
+        force: args.force,
+      })
+      for (const line of lines) console.log(line)
+    } catch (error) {
+      if (error instanceof CliError) {
+        console.error(formatCliError(error, { verbose }))
+        process.exitCode = 1
+        return
+      }
+      throw error
+    }
+  },
+})
+
 const mutate = defineCommand({
   meta: {
     name: 'mutate',
@@ -145,7 +180,7 @@ const main = defineCommand({
     name: 'spec-trace',
     description: 'The judge that checks whether your tests actually prove the spec',
   },
-  subCommands: { verify, report, mutate },
+  subCommands: { verify, report, init, mutate },
 })
 
 void runMain(main)

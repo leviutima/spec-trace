@@ -1,0 +1,6 @@
+{
+  "name": "cjs-fresh",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "with-existing-scripts",
+  "type": "module",
+  "scripts": {
+    "verify": "./custom-verify.sh"
+  }
+}
