@@ -54,6 +54,42 @@ report to `.spec-trace/report.md` and exit 0 regardless of how many
 violations it found — the report is meant to be read by an agent on the
 next turn, not to gate CI.
 
+## REQ-046 — verify prints a quantitative coverage summary
+
+**When** `spec-trace verify` finishes gathering requirements and violations,
+**the system shall** append a summary counting the total number of
+requirements, how many are covered and what percentage that is, how many
+are uncovered, and how many `weak-test` violations were found — in both the
+human output (as a trailing summary line) and the `--json` output (as a
+`requirements` object alongside `violations`), so a reader gets the scale
+of the problem at a glance instead of having to count violation lines.
+
+## REQ-047 — --baseline snapshots the current violations and always exits 0
+
+**When** `spec-trace verify --baseline` runs, **the system shall** compute
+violations as normal, write a fingerprint of each one to
+`.spec-trace/baseline.json`, print them exactly as an unbaselined run
+would, and exit 0 regardless of severity — establishing a baseline is not
+itself a failure, so a project can adopt spec-trace against existing,
+uncorrected violations without an immediate red CI run.
+
+## REQ-048 — A plain verify filters out violations already in the baseline
+
+**When** `.spec-trace/baseline.json` exists and `spec-trace verify` runs
+without `--baseline`, **the system shall** filter every violation matching
+a baseline fingerprint out of the violation set before computing the
+summary, the markdown report, and the exit code — only violations that are
+new since the baseline was recorded can fail the run or appear in output.
+A fingerprint is derived from a violation's rule, requirement id, file, and
+message, deliberately excluding its line number, so an unrelated edit a few
+lines above a baselined violation does not silently un-baseline it.
+
+## REQ-049 — No baseline file means no filtering
+
+**When** `.spec-trace/baseline.json` does not exist, **the system shall**
+report every violation exactly as it would with no baseline feature at
+all — baselining is opt-in and inert until `--baseline` has been run once.
+
 ## REQ-035 — Gathering results discovers the real test files on disk
 
 **Before** evaluating `stale-results`, **the system shall** walk the

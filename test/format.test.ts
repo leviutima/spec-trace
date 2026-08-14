@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatHuman, formatMarkdownReport } from '../src/format.js'
+import { computeSummary, formatHuman, formatJson, formatMarkdownReport } from '../src/format.js'
 import type { Requirement } from '../src/spec-parser.js'
 import type { Violation } from '../src/rules-engine.js'
 
@@ -16,7 +16,7 @@ function req(overrides: Partial<Requirement> & { id: string }): Requirement {
 
 describe('[REQ-027] formatHuman', () => {
   it('reports a clean summary when there are no violations', () => {
-    const output = formatHuman([])
+    const output = formatHuman([], [])
     expect(output).toContain('0 errors')
     expect(output).toContain('0 warnings')
   })
@@ -33,7 +33,7 @@ describe('[REQ-027] formatHuman', () => {
       },
     ]
 
-    const output = formatHuman(violations)
+    const output = formatHuman([req({ id: 'REQ-001' })], violations)
 
     expect(output).toContain('REQ-001')
     expect(output).toContain('uncovered-requirement')
@@ -49,10 +49,73 @@ describe('[REQ-027] formatHuman', () => {
       { rule: 'orphan-test', severity: 'warn', message: 'c' },
     ]
 
-    const output = formatHuman(violations)
+    const output = formatHuman([], violations)
 
     expect(output).toContain('1 error')
     expect(output).toContain('2 warnings')
+  })
+})
+
+describe('[REQ-046] computeSummary', () => {
+  it('counts covered, uncovered, and weak, with a rounded percentage', () => {
+    const requirements = [
+      req({ id: 'REQ-001' }),
+      req({ id: 'REQ-002' }),
+      req({ id: 'REQ-003', ignored: true }),
+    ]
+    const violations: Violation[] = [
+      {
+        rule: 'uncovered-requirement',
+        severity: 'error',
+        message: 'x',
+        requirementId: 'REQ-002',
+      },
+      { rule: 'weak-test', severity: 'warn', message: 'weak', file: 'test/a.test.ts' },
+    ]
+
+    const summary = computeSummary(requirements, violations)
+
+    expect(summary).toEqual({
+      total: 3,
+      covered: 1,
+      uncovered: 1,
+      ignored: 1,
+      percentCovered: 33,
+      weak: 1,
+    })
+  })
+
+  it('reports zero percent covered for zero requirements without dividing by zero', () => {
+    expect(computeSummary([], [])).toEqual({
+      total: 0,
+      covered: 0,
+      uncovered: 0,
+      ignored: 0,
+      percentCovered: 0,
+      weak: 0,
+    })
+  })
+
+  it('formatHuman appends the summary line', () => {
+    const output = formatHuman([req({ id: 'REQ-001' })], [])
+    expect(output).toContain('1 requirements | 1 covered (100%) | 0 uncovered | 0 weak')
+  })
+
+  it('formatJson includes a requirements summary alongside violations', () => {
+    const parsed = JSON.parse(formatJson([req({ id: 'REQ-001' })], [])) as {
+      requirements: unknown
+      violations: unknown[]
+    }
+
+    expect(parsed.requirements).toEqual({
+      total: 1,
+      covered: 1,
+      uncovered: 0,
+      ignored: 0,
+      percentCovered: 100,
+      weak: 0,
+    })
+    expect(parsed.violations).toEqual([])
   })
 })
 

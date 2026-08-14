@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import pc from 'picocolors'
+import { filterBaselined, readBaseline, writeBaseline } from './baseline.js'
 import { CliError } from './cli-error.js'
 import { loadConfig } from './config-loader.js'
 import { formatCliError, formatHuman, formatJson, formatMarkdownReport } from './format.js'
@@ -61,6 +62,10 @@ const verify = defineCommand({
       description: 'Minimum severity that causes a non-zero exit code: error or warn',
       default: 'error',
     },
+    baseline: {
+      type: 'boolean',
+      description: 'Record the current violations as a baseline; future runs only fail on new ones',
+    },
     verbose: verboseArg,
   },
   async run({ args }) {
@@ -68,16 +73,30 @@ const verify = defineCommand({
     const gathered = await gatherOrExit(args.config, verbose)
     if (!gathered) return
 
-    const { requirements, violations } = gathered
+    const { requirements } = gathered
+    const cwd = process.cwd()
+
+    if (args.baseline) {
+      writeBaseline(cwd, gathered.violations)
+    }
+
+    const violations = args.baseline
+      ? gathered.violations
+      : filterBaselined(gathered.violations, readBaseline(cwd))
 
     if (args.markdown) {
-      const markdownPath = resolve(process.cwd(), args.markdown)
+      const markdownPath = resolve(cwd, args.markdown)
       mkdirSync(dirname(markdownPath), { recursive: true })
       writeFileSync(markdownPath, formatMarkdownReport(requirements, violations))
     }
 
     const useJson = args.json || args.reporter === 'json'
-    console.log(useJson ? formatJson(violations) : formatHuman(violations))
+    console.log(useJson ? formatJson(requirements, violations) : formatHuman(requirements, violations))
+
+    if (args.baseline) {
+      process.exitCode = 0
+      return
+    }
 
     const failOnWarn = args['fail-on'] === 'warn'
     const hasError = violations.some((v) => v.severity === 'error')

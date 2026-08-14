@@ -40,11 +40,64 @@ export function formatCliError(error: CliError, options: FormatCliErrorOptions):
   return lines.join('\n')
 }
 
-export function formatJson(violations: Violation[]): string {
-  return JSON.stringify(violations, null, 2)
+type RequirementStatus = 'Covered' | 'Uncovered' | 'Skipped only' | 'Failing' | 'Ignored'
+
+function statusFor(requirement: Requirement, violations: Violation[]): RequirementStatus {
+  if (requirement.ignored) return 'Ignored'
+
+  const relevant = violations.filter((v) => v.requirementId === requirement.id)
+  if (relevant.some((v) => v.rule === 'uncovered-requirement')) return 'Uncovered'
+  if (relevant.some((v) => v.rule === 'skipped-coverage')) return 'Skipped only'
+  if (relevant.some((v) => v.rule === 'failing-coverage')) return 'Failing'
+  return 'Covered'
 }
 
-export function formatHuman(violations: Violation[]): string {
+export interface Summary {
+  total: number
+  covered: number
+  uncovered: number
+  ignored: number
+  percentCovered: number
+  weak: number
+}
+
+/**
+ * REQ-046: the at-a-glance counts shown after every verify run. `ignored`
+ * requirements count toward neither `covered` nor `uncovered`. `weak` counts
+ * weak-test violations directly (a test-level finding, not a per-requirement
+ * status), so it isn't derived from statusFor.
+ */
+export function computeSummary(requirements: Requirement[], violations: Violation[]): Summary {
+  let covered = 0
+  let ignored = 0
+  let uncovered = 0
+
+  for (const requirement of requirements) {
+    const status = statusFor(requirement, violations)
+    if (status === 'Ignored') ignored++
+    else if (status === 'Covered') covered++
+    else uncovered++
+  }
+
+  const total = requirements.length
+  const percentCovered = total === 0 ? 0 : Math.round((covered / total) * 100)
+  const weak = violations.filter((v) => v.rule === 'weak-test').length
+
+  return { total, covered, uncovered, ignored, percentCovered, weak }
+}
+
+function formatSummaryLine(summary: Summary): string {
+  return (
+    `${summary.total} requirements | ${summary.covered} covered (${summary.percentCovered}%) | ` +
+    `${summary.uncovered} uncovered | ${summary.weak} weak`
+  )
+}
+
+export function formatJson(requirements: Requirement[], violations: Violation[]): string {
+  return JSON.stringify({ requirements: computeSummary(requirements, violations), violations }, null, 2)
+}
+
+export function formatHuman(requirements: Requirement[], violations: Violation[]): string {
   const errors = violations.filter((v) => v.severity === 'error')
   const warnings = violations.filter((v) => v.severity === 'warn')
   const lines: string[] = []
@@ -66,20 +119,9 @@ export function formatHuman(violations: Violation[]): string {
   lines.push(
     `${errors.length === 1 ? '1 error' : `${errors.length} errors`}, ${warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}`,
   )
+  lines.push(pc.dim(formatSummaryLine(computeSummary(requirements, violations))))
 
   return lines.join('\n')
-}
-
-type RequirementStatus = 'Covered' | 'Uncovered' | 'Skipped only' | 'Failing' | 'Ignored'
-
-function statusFor(requirement: Requirement, violations: Violation[]): RequirementStatus {
-  if (requirement.ignored) return 'Ignored'
-
-  const relevant = violations.filter((v) => v.requirementId === requirement.id)
-  if (relevant.some((v) => v.rule === 'uncovered-requirement')) return 'Uncovered'
-  if (relevant.some((v) => v.rule === 'skipped-coverage')) return 'Skipped only'
-  if (relevant.some((v) => v.rule === 'failing-coverage')) return 'Failing'
-  return 'Covered'
 }
 
 export function formatMarkdownReport(requirements: Requirement[], violations: Violation[]): string {
