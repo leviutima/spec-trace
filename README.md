@@ -26,8 +26,10 @@ write code. It answers three questions, in a way a machine can verify:
 
 ## What this is not
 
-- **Not a scaffolder.** It doesn't generate a project or an app folder
-  structure, and there's no `init` that dumps an app template.
+- **Not an app scaffolder.** `init` only wires spec-trace itself into a
+  project you already have — `specs/`, a vitest config, a couple of npm
+  scripts. It doesn't generate application code, and there's nothing that
+  dumps a project template.
 - **Not a test framework.** It runs on top of Vitest; it doesn't replace it.
 - **Not an agent, and it doesn't call an LLM.** No AI SDK dependency.
   Deterministic: same input, same output, every time.
@@ -37,16 +39,48 @@ write code. It answers three questions, in a way a machine can verify:
 - **Doesn't impose a proprietary spec format.** It only requires that
   requirements have a stable id.
 
-## Install
+## Quick start
 
 ```sh
 npm install --save-dev @leviutima/spec-trace vitest
+npx spec-trace init
 ```
 
 `typescript` is an optional peerDependency, used only for the `weak-test`
 AST analysis. Most projects already have it; if yours doesn't,
 `verify`/`report` still work — they just skip `weak-test` with a one-line
 warning telling you how to enable it.
+
+`init` detects whether your project is ESM or CommonJS, whether Vitest is
+already configured, and what language to write in, then scaffolds exactly
+what's missing: `specs/AGENTS.md` (the agent manual), a vitest config with
+the reporter wired in if you don't already have one, `.spec-trace/`, the
+`verify`/`report`/`check` npm scripts, and a `.gitignore` entry. It never
+overwrites anything you already have — see [`spec-trace init`](#spec-trace-init)
+below for the flags and exact guarantees.
+
+It does not run `npm install` for you or write application code — the two
+lines above are the whole setup.
+
+## The flow
+
+1. **Write the requirement first.** A new `REQ-<n>` heading goes into
+   `specs/*.md` before any code — that's the first approval gate: does the
+   requirement say what you actually mean?
+2. **Write a test that declares the id**, in its `describe` or `it` name,
+   then implement the behavior. That's the second gate: `spec-trace verify`
+   checks that the id you just wrote is real, and that the test isn't
+   decorative.
+3. Run the suite, then `npx spec-trace report` and `npx spec-trace verify`
+   until it's clean.
+
+This is spelled out in full, with the exact "definition of done" block to
+copy into your own `AGENTS.md`/`CLAUDE.md`, in
+[`specs/AGENTS.md`](./specs/AGENTS.md) once `init` has generated it for your
+project. (This repository's own equivalent — the rules spec-trace's own
+development follows — lives at [`AGENTS.md`](./AGENTS.md) at the repo root;
+`specs/AGENTS.md` is the name `init` gives that manual *inside* a project
+that adopts spec-trace.)
 
 ## End-to-end example
 
@@ -85,28 +119,15 @@ actually check for the `INVALID_QUANTITY` error — it just checks that
 ✓ test/cart.test.ts (1 test)
 ```
 
-Wire up the reporter in `vitest.config.ts`:
-
-```ts
-import { defineConfig } from 'vitest/config'
-import { SpecTraceReporter } from '@leviutima/spec-trace/reporter'
-
-export default defineConfig({
-  test: {
-    reporters: ['default', new SpecTraceReporter()],
-  },
-})
-```
-
-Run your suite once to produce `.spec-trace/results.json`, then ask the
-external judge. `weak-test` is `warn` by default since it's a heuristic
-(more on that below) — `--fail-on warn` is what makes it actually gate:
+`weak-test` is `warn` by default since it's a heuristic (more on that
+below) — `--fail-on warn` is what makes it actually gate:
 
 ```sh
 $ npx spec-trace verify --fail-on warn
 [warn] weak-test Test "REQ-014: cart quantity validation > rejects a non-positive quantity" looks weak: non-discriminant-assertions (test/cart.test.ts:5)
 
 0 errors, 1 warning
+1 requirements | 1 covered (100%) | 0 uncovered | 1 weak
 $ echo $?
 1
 ```
@@ -163,9 +184,30 @@ inside it.
 A custom Vitest reporter (`@leviutima/spec-trace/reporter`) writes
 `.spec-trace/results.json` while your suite runs, recording real state —
 `passed`, `failed`, `skipped`, or `todo`. **A skipped test does not count
-as coverage.** A requirement covered only by `it.skip` is uncovered.
+as coverage.** A requirement covered only by `it.skip` is uncovered. **A
+suite that produced zero results is a violation, not a clean pass** — see
+`empty-suite` below, which is exactly what catches `vitest run
+--passWithNoTests` slipping a green build through with nothing proven.
 
 ## CLI
+
+### `spec-trace init`
+
+Scaffolds spec-trace into the current project — see [Quick start](#quick-start).
+Detects your module type (`"type": "module"` in `package.json`) and
+whether Vitest is already configured, and generates only what's missing.
+
+Flags: `--lang <en|pt-BR>` (defaults to your environment's locale, then
+English), `--dry-run` (print the plan, write nothing), `--force`
+(overwrite files `init` previously generated — never any other
+`specs/*.md`), `--verbose`.
+
+Guarantees: **idempotent** — running it twice makes no changes the second
+time. **Non-destructive** — it only ever creates or appends, never deletes,
+and `--force` is scoped to the exact set of files `init` itself generates.
+If a vitest config already exists, it's never rewritten; if it's missing
+the reporter, `init` prints the snippet to add instead of editing your
+config for you.
 
 ### `spec-trace verify`
 
@@ -181,9 +223,19 @@ against `.spec-trace/results.json` and applies these rules:
 | `failing-coverage` | A requirement whose covering test(s) are failing | error |
 | `duplicate-requirement` | The same id declared more than once | error |
 | `weak-test` | A test that matches one of the heuristics below | warn |
+| `stale-results` | `results.json` doesn't match the test files actually on disk | error |
+| `empty-suite` | The suite produced zero test results — proves nothing | error |
 
 Flags: `--json`, `--markdown <path>`, `--reporter <human\|json>`,
-`--config <path>`, `--fail-on <error\|warn>`.
+`--config <path>`, `--fail-on <error\|warn>`, `--baseline`, `--verbose`.
+
+Every run — human or `--json` — ends with a quantitative summary:
+
+```
+27 requirements | 0 covered (0%) | 27 uncovered | 0 weak
+```
+
+`--json` returns `{ "requirements": { ...those same counts }, "violations": [...] }`.
 
 Exits 1 if any violation is at or above the `--fail-on` level (default:
 `error`).
@@ -250,12 +302,58 @@ export default defineConfig({
 that legitimately contain `*.test.ts`-named files never meant to run
 directly — this project's own `test/fixtures/` is exactly that case.
 
+## Setup in a CommonJS project
+
+If your `package.json` has no `"type": "module"` field, a plain
+`vitest.config.ts` gets loaded via `require()` — which breaks against
+`@leviutima/spec-trace/reporter`, an ESM-only import, with an unhelpful
+"This package is ESM only" error. The fix is a `.mts` extension instead of
+`.ts`: Vitest's config loader always evaluates a `.mts` file as ESM
+regardless of the package's own `"type"` field.
+
+```ts
+// vitest.config.mts
+import { defineConfig } from 'vitest/config'
+import { SpecTraceReporter } from '@leviutima/spec-trace/reporter'
+
+export default defineConfig({
+  test: {
+    reporters: ['default', new SpecTraceReporter()],
+  },
+})
+```
+
+`spec-trace init` does this automatically — it's the whole reason `init`
+inspects `package.json`'s `"type"` field before deciding which extension to
+generate. If you're wiring the reporter into an existing CommonJS config by
+hand instead, renaming it to `.mts` is the fix.
+
+## Adopting spec-trace in an existing project
+
+Dropping `verify` into a project with months of untested history means the
+first run reports every uncovered requirement at once — which is accurate,
+but not something you can fix in one sitting, and "just turn every rule to
+warn" is how a coverage tool quietly stops mattering.
+
+```sh
+npx spec-trace verify --baseline
+```
+
+This records the current violations in `.spec-trace/baseline.json` and
+always exits 0 — establishing a baseline isn't itself a failure. From then
+on, a plain `spec-trace verify` only reports and fails on violations that
+are **new** since the baseline was recorded; everything already in the
+baseline is filtered out of both the output and the exit code. Existing
+debt stays visible in `.spec-trace/report.md` (which never gates) without
+blocking unrelated work, and shrinks only when someone deliberately fixes
+something and re-runs `--baseline` to move the line forward.
+
 ## Agent integration
 
 spec-trace is passive by default: something has to remember to call it.
 The point lands when it's in the loop the agent already follows on every
-task. See [`AGENTS.md`](./AGENTS.md) for this repository's own rules, and
-copy the block below into your project's `AGENTS.md` / `CLAUDE.md`:
+task. `spec-trace init` writes this for you at `specs/AGENTS.md`; the block
+it generates is:
 
 ```md
 ## Definition of done
@@ -273,6 +371,10 @@ close the gate — only silence it when you can explain why the test is
 actually strong despite the heuristic flagging it.
 ```
 
+If `AGENTS.md` or `CLAUDE.md` already exists at your project's root,
+`init` appends a one-line pointer to `specs/AGENTS.md` into it; if neither
+exists, it just suggests adding one.
+
 ## Roadmap
 
 - **Mutation testing (`spec-trace mutate`).** Phase 2. Instead of guessing
@@ -285,7 +387,7 @@ actually strong despite the heuristic flagging it.
 This repository dogfoods itself: [`specs/`](./specs) contains spec-trace's
 own requirements, every test in [`test/`](./test) is tagged with the
 requirement id(s) it proves, and CI runs `spec-trace verify` against this
-repo on every push.
+repo — on Linux and Windows — on every push.
 
 ```sh
 npm install

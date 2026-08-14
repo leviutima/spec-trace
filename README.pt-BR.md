@@ -26,8 +26,10 @@ Ele responde três perguntas, de forma verificável por máquina:
 
 ## O que isto NÃO é
 
-- **Não é um scaffolder.** Não gera projeto nem estrutura de pastas de
-  aplicação, e não existe `init` que despeja template de app.
+- **Não é um scaffolder de app.** O `init` só conecta o próprio spec-trace a
+  um projeto que você já tem — `specs/`, um config do vitest, um par de
+  scripts do npm. Ele não gera código de aplicação, e não existe nada que
+  despeje um template de projeto.
 - **Não é um framework de testes.** Roda em cima do Vitest; não o substitui.
 - **Não é um agente, e não chama LLM.** Nenhuma dependência de SDK de IA.
   Determinístico: mesma entrada, mesma saída, sempre.
@@ -37,16 +39,49 @@ Ele responde três perguntas, de forma verificável por máquina:
 - **Não impõe formato de spec proprietário.** Só exige que requisitos
   tenham um ID estável.
 
-## Instalação
+## Começo rápido
 
 ```sh
 npm install --save-dev @leviutima/spec-trace vitest
+npx spec-trace init
 ```
 
-`typescript` é uma peerDependency opcional, usada só para a análise de
-AST do `weak-test`. A maioria dos projetos já tem; se o seu não tiver,
+`typescript` é uma peerDependency opcional, usada só para a análise de AST
+do `weak-test`. A maioria dos projetos já tem; se o seu não tiver,
 `verify`/`report` continuam funcionando — só pulam o `weak-test` com um
 aviso de uma linha explicando como habilitar.
+
+O `init` detecta se o seu projeto é ESM ou CommonJS, se o Vitest já está
+configurado, e em qual idioma escrever, e então gera exatamente o que
+está faltando: `specs/AGENTS.md` (o manual do agente), um config do vitest
+com o reporter já conectado se você ainda não tiver um, `.spec-trace/`, os
+scripts `verify`/`report`/`check` no npm, e uma entrada no `.gitignore`.
+Ele nunca sobrescreve nada que você já tem — veja
+[`spec-trace init`](#spec-trace-init) abaixo para as flags e as garantias
+exatas.
+
+Ele não roda `npm install` por você nem escreve código de aplicação — as
+duas linhas acima são a configuração inteira.
+
+## O fluxo
+
+1. **Escreva o requisito primeiro.** Um novo heading `REQ-<n>` entra em
+   `specs/*.md` antes de qualquer código — esse é o primeiro portão de
+   aprovação: o requisito diz o que você realmente quer dizer?
+2. **Escreva um teste que declara o ID**, no nome do `describe` ou `it`,
+   depois implemente o comportamento. Esse é o segundo portão: o
+   `spec-trace verify` checa se o ID que você acabou de escrever é real, e
+   se o teste não é decorativo.
+3. Rode a suíte, depois `npx spec-trace report` e `npx spec-trace verify`
+   até ficar limpo.
+
+Isso está detalhado por completo, com o bloco exato de "definição de
+pronto" para copiar no seu próprio `AGENTS.md`/`CLAUDE.md`, em
+[`specs/AGENTS.md`](./specs/AGENTS.md) assim que o `init` o gerar para o
+seu projeto. (O equivalente deste próprio repositório — as regras que o
+desenvolvimento do spec-trace segue — fica em [`AGENTS.md`](./AGENTS.md)
+na raiz do repo; `specs/AGENTS.md` é o nome que o `init` dá a esse manual
+*dentro* de um projeto que adota o spec-trace.)
 
 ## Exemplo de ponta a ponta
 
@@ -85,29 +120,15 @@ verde:
 ✓ test/cart.test.ts (1 test)
 ```
 
-Configure o reporter no `vitest.config.ts`:
-
-```ts
-import { defineConfig } from 'vitest/config'
-import { SpecTraceReporter } from '@leviutima/spec-trace/reporter'
-
-export default defineConfig({
-  test: {
-    reporters: ['default', new SpecTraceReporter()],
-  },
-})
-```
-
-Rode sua suíte uma vez para gerar `.spec-trace/results.json`, e então
-pergunte ao juiz externo. `weak-test` é `warn` por padrão porque é uma
-heurística (mais sobre isso abaixo) — `--fail-on warn` é o que faz ela
-realmente barrar:
+`weak-test` é `warn` por padrão porque é uma heurística (mais sobre isso
+abaixo) — `--fail-on warn` é o que faz ela realmente barrar:
 
 ```sh
 $ npx spec-trace verify --fail-on warn
 [warn] weak-test Test "REQ-014: cart quantity validation > rejects a non-positive quantity" looks weak: non-discriminant-assertions (test/cart.test.ts:5)
 
 0 errors, 1 warning
+1 requirements | 1 covered (100%) | 0 uncovered | 1 weak
 $ echo $?
 1
 ```
@@ -165,9 +186,30 @@ Um reporter customizado do Vitest (`@leviutima/spec-trace/reporter`)
 escreve `.spec-trace/results.json` enquanto sua suíte roda, registrando o
 estado real — `passed`, `failed`, `skipped` ou `todo`. **Um teste pulado
 não conta como cobertura.** Um requisito coberto só por `it.skip` está
-descoberto.
+descoberto. **Uma suíte que não produziu nenhum resultado é uma violação,
+não um estado neutro** — veja `empty-suite` abaixo, que é exatamente o que
+pega um `vitest run --passWithNoTests` deixando passar um build verde sem
+provar nada.
 
 ## CLI
+
+### `spec-trace init`
+
+Conecta o spec-trace ao projeto atual — veja [Começo rápido](#começo-rápido).
+Detecta o seu tipo de módulo (`"type": "module"` no `package.json`) e se o
+Vitest já está configurado, e gera só o que está faltando.
+
+Flags: `--lang <en|pt-BR>` (padrão é o locale do seu ambiente, depois
+inglês), `--dry-run` (imprime o plano, não escreve nada), `--force`
+(sobrescreve arquivos que o `init` gerou antes — nunca outro
+`specs/*.md`), `--verbose`.
+
+Garantias: **idempotente** — rodar duas vezes não faz nenhuma mudança na
+segunda vez. **Não-destrutivo** — só cria ou acrescenta, nunca apaga, e o
+`--force` fica restrito ao conjunto exato de arquivos que o próprio `init`
+gera. Se já existe um config do vitest, ele nunca é reescrito; se está
+faltando o reporter, o `init` imprime o trecho a adicionar em vez de
+editar o seu config por conta própria.
 
 ### `spec-trace verify`
 
@@ -183,9 +225,19 @@ O comando principal. Rápido, feito para rodar em todo commit. Compara
 | `failing-coverage` | Requisito cujos testes que o cobrem estão falhando | error |
 | `duplicate-requirement` | O mesmo ID declarado mais de uma vez | error |
 | `weak-test` | Teste que bate com uma das heurísticas abaixo | warn |
+| `stale-results` | `results.json` não bate com os arquivos de teste que existem no disco | error |
+| `empty-suite` | A suíte produziu zero resultados de teste — não prova nada | error |
 
 Flags: `--json`, `--markdown <path>`, `--reporter <human\|json>`,
-`--config <path>`, `--fail-on <error\|warn>`.
+`--config <path>`, `--fail-on <error\|warn>`, `--baseline`, `--verbose`.
+
+Toda execução — humana ou `--json` — termina com um resumo quantitativo:
+
+```
+27 requirements | 0 covered (0%) | 27 uncovered | 0 weak
+```
+
+O `--json` retorna `{ "requirements": { ...esses mesmos números }, "violations": [...] }`.
 
 Sai com código 1 se alguma violação estiver no nível de `--fail-on` ou
 acima (padrão: `error`).
@@ -254,13 +306,60 @@ para diretórios que legitimamente contêm arquivos `*.test.ts` que nunca
 são executados diretamente — o próprio `test/fixtures/` deste projeto é
 exatamente esse caso.
 
+## Configurando num projeto CommonJS
+
+Se o seu `package.json` não tem o campo `"type": "module"`, um
+`vitest.config.ts` comum é carregado via `require()` — o que quebra contra
+`@leviutima/spec-trace/reporter`, um import ESM-only, com um erro pouco
+útil de "This package is ESM only". A correção é usar a extensão `.mts`
+em vez de `.ts`: o carregador de config do Vitest sempre avalia um arquivo
+`.mts` como ESM, independente do campo `"type"` do próprio pacote.
+
+```ts
+// vitest.config.mts
+import { defineConfig } from 'vitest/config'
+import { SpecTraceReporter } from '@leviutima/spec-trace/reporter'
+
+export default defineConfig({
+  test: {
+    reporters: ['default', new SpecTraceReporter()],
+  },
+})
+```
+
+O `spec-trace init` faz isso automaticamente — é exatamente por isso que
+o `init` inspeciona o campo `"type"` do `package.json` antes de decidir
+qual extensão gerar. Se você estiver conectando o reporter num config
+CommonJS existente à mão, renomear para `.mts` é a correção.
+
+## Adotando o spec-trace num projeto existente
+
+Colocar o `verify` num projeto com meses de histórico sem teste faz a
+primeira execução reportar todo requisito descoberto de uma vez — o que é
+correto, mas não é algo que dá pra corrigir numa sentada só, e "só coloca
+tudo em warn" é como uma ferramenta de cobertura silenciosamente para de
+importar.
+
+```sh
+npx spec-trace verify --baseline
+```
+
+Isso registra as violações atuais em `.spec-trace/baseline.json` e sempre
+sai com código 0 — estabelecer um baseline não é, em si, uma falha. A
+partir daí, um `spec-trace verify` normal só reporta e falha em violações
+que são **novas** desde que o baseline foi registrado; tudo que já estava
+no baseline é filtrado tanto da saída quanto do exit code. A dívida
+existente continua visível no `.spec-trace/report.md` (que nunca barra)
+sem bloquear trabalho não relacionado, e só diminui quando alguém corrige
+algo de propósito e roda `--baseline` de novo para mover a linha para
+frente.
+
 ## Integração com agente
 
 Por padrão o spec-trace é passivo: alguém precisa lembrar de chamá-lo.
 O valor real aparece quando ele entra no loop que o agente já segue em
-toda task. Veja [`AGENTS.md`](./AGENTS.md) para as regras deste
-repositório, e copie o bloco abaixo no `AGENTS.md` / `CLAUDE.md` do seu
-projeto:
+toda task. O `spec-trace init` já escreve isso para você em
+`specs/AGENTS.md`; o bloco que ele gera é:
 
 ```md
 ## Definition of done
@@ -277,6 +376,10 @@ fechar o gate — silencie apenas quando conseguir explicar por que o
 teste é forte apesar da heurística sinalizar.
 ```
 
+Se `AGENTS.md` ou `CLAUDE.md` já existe na raiz do seu projeto, o `init`
+acrescenta uma linha apontando para `specs/AGENTS.md` nele; se nenhum dos
+dois existe, ele só sugere criar um.
+
 ## Roadmap
 
 - **Mutation testing (`spec-trace mutate`).** Fase 2. Em vez de chutar se
@@ -289,7 +392,8 @@ teste é forte apesar da heurística sinalizar.
 Este repositório faz dogfooding em si mesmo: [`specs/`](./specs) contém os
 próprios requisitos do spec-trace, todo teste em [`test/`](./test) está
 marcado com o(s) ID(s) de requisito que ele prova, e o CI roda
-`spec-trace verify` contra este repositório em todo push.
+`spec-trace verify` contra este repositório — em Linux e Windows — em todo
+push.
 
 ```sh
 npm install
