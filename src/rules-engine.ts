@@ -35,6 +35,7 @@ const DEFAULT_SEVERITIES: Required<SpecTraceRuleConfig> = {
   'duplicate-requirement': 'error',
   'weak-test': 'warn',
   'stale-results': 'error',
+  'empty-suite': 'error',
 }
 
 const DEFAULT_ID_PATTERN = 'REQ-\\d+'
@@ -57,6 +58,16 @@ export function checkRules(
     const severity = severities[violation.rule]
     if (severity === 'off') return
     violations.push({ ...violation, severity })
+  }
+
+  if (tests.length === 0) {
+    emit({
+      rule: 'empty-suite',
+      message:
+        'The test suite produced zero test results. This proves nothing — check that your ' +
+        'test files exist and match testMatch, and that the run was not filtered to nothing ' +
+        '(e.g. --passWithNoTests with no matching files).',
+    })
   }
 
   const byId = new Map<string, Requirement[]>()

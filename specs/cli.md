@@ -15,6 +15,16 @@ shall** likewise raise a distinct, catchable error with a message
 telling the user to create it, instead of letting a raw `ENOENT` escape
 to the terminal.
 
+### Note: the three states of `results.json`
+
+`gatherResults` distinguishes three states, each with its own mechanism —
+this note ties them together in one place rather than duplicating the logic
+description across specs. **Absent:** the suite never ran with the reporter
+configured — `ResultsFileNotFoundError` (REQ-029). **Present, zero tests:**
+the suite ran but produced nothing — the `empty-suite` rule (REQ-045), a
+violation, not a neutral or clean state. **Present, with tests:** the normal
+coverage-checking flow below.
+
 ## REQ-030 — Rule violations and weak-test findings are combined, respecting the on/off toggle
 
 **When** gathering results for a project, **the system shall** combine

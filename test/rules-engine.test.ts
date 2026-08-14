@@ -33,7 +33,9 @@ describe('checkRules', () => {
   })
 
   it('[REQ-009] flags uncovered-requirement when no test references the id', () => {
-    const violations = checkRules([req({ id: 'REQ-001' })], [])
+    const violations = checkRules([req({ id: 'REQ-001' })], [], {
+      rules: { 'empty-suite': 'off' },
+    })
 
     expect(violations).toEqual([
       expect.objectContaining({ rule: 'uncovered-requirement', severity: 'error', requirementId: 'REQ-001' }),
@@ -111,20 +113,25 @@ describe('checkRules', () => {
   })
 
   it('[REQ-015] does not flag a requirement marked ignored via the spec-trace:ignore marker', () => {
-    const violations = checkRules([req({ id: 'REQ-001', ignored: true })], [])
+    const violations = checkRules([req({ id: 'REQ-001', ignored: true })], [], {
+      rules: { 'empty-suite': 'off' },
+    })
 
     expect(violations).toEqual([])
   })
 
   it('[REQ-015] does not flag a requirement listed in the ignore option', () => {
-    const violations = checkRules([req({ id: 'REQ-001' })], [], { ignore: ['REQ-001'] })
+    const violations = checkRules([req({ id: 'REQ-001' })], [], {
+      ignore: ['REQ-001'],
+      rules: { 'empty-suite': 'off' },
+    })
 
     expect(violations).toEqual([])
   })
 
   it('[REQ-016] silences a rule set to off in the config', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [], {
-      rules: { 'uncovered-requirement': 'off' },
+      rules: { 'uncovered-requirement': 'off', 'empty-suite': 'off' },
     })
 
     expect(violations).toEqual([])
@@ -132,7 +139,7 @@ describe('checkRules', () => {
 
   it('[REQ-016] honors a custom severity override', () => {
     const violations = checkRules([req({ id: 'REQ-001' })], [], {
-      rules: { 'uncovered-requirement': 'warn' },
+      rules: { 'uncovered-requirement': 'warn', 'empty-suite': 'off' },
     })
 
     expect(violations).toEqual([
@@ -270,6 +277,39 @@ describe('checkRules', () => {
       })
 
       expect(violations).toContainEqual(expect.objectContaining({ rule: 'stale-results', severity: 'warn' }))
+    })
+  })
+
+  describe('[REQ-045] empty-suite', () => {
+    it('flags empty-suite when the test results array is empty, even with requirements present', () => {
+      const violations = checkRules([req({ id: 'REQ-001' })], [], {
+        rules: { 'uncovered-requirement': 'off' },
+      })
+
+      expect(violations).toEqual([expect.objectContaining({ rule: 'empty-suite', severity: 'error' })])
+    })
+
+    it('flags empty-suite even when there are no requirements at all', () => {
+      const violations = checkRules([], [])
+
+      expect(violations).toEqual([expect.objectContaining({ rule: 'empty-suite', severity: 'error' })])
+    })
+
+    it('does not flag empty-suite when at least one test result exists', () => {
+      const violations = checkRules(
+        [req({ id: 'REQ-001' })],
+        [testResult({ name: 'REQ-001: covered', status: 'passed' })],
+      )
+
+      expect(violations.some((v) => v.rule === 'empty-suite')).toBe(false)
+    })
+
+    it('is silenced by the off toggle', () => {
+      const violations = checkRules([req({ id: 'REQ-001' })], [], {
+        rules: { 'uncovered-requirement': 'off', 'empty-suite': 'off' },
+      })
+
+      expect(violations).toEqual([])
     })
   })
 

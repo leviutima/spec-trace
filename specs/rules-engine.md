@@ -80,6 +80,17 @@ never re-run to prove the deletion didn't remove coverage. **When** no
 file-state information is supplied, **the system shall** skip this rule
 entirely rather than treat its absence as passing.
 
+## REQ-045 — empty-suite
+
+**When** the test results passed into the rules engine are an empty array,
+**the system shall** report a single `empty-suite` violation, independent of
+how many requirements exist — a suite that produced zero results proves
+nothing, whether that's because no test files matched, `vitest run
+--passWithNoTests` slipped through, or `results.json` was hand-crafted as
+`{"tests":[]}`. This is the exact shape `spec-trace init` scaffolds on
+first run, on purpose: an empty suite should be a visible violation from
+the very first `verify`, not a silent pass.
+
 ## REQ-038 — idPattern controls which ids are recognized in test names
 
 **When** the caller supplies a custom `idPattern` (default `REQ-\d+`),

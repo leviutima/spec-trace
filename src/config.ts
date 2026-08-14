@@ -7,6 +7,7 @@ export interface SpecTraceRuleConfig {
   'duplicate-requirement'?: 'error' | 'warn' | 'off'
   'weak-test'?: 'error' | 'warn' | 'off'
   'stale-results'?: 'error' | 'warn' | 'off'
+  'empty-suite'?: 'error' | 'warn' | 'off'
 }
 
 export interface SpecTraceConfig {

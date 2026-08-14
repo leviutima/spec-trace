@@ -17,6 +17,8 @@ const ACTIONS: Record<RuleId, (violation: Violation) => string> = {
   'weak-test': () => "Strengthen this test's assertions — it matched a weak-test heuristic (see message).",
   'stale-results': () =>
     'Re-run your test suite with the spec-trace reporter configured so results.json reflects the current test files.',
+  'empty-suite': () =>
+    'Make sure your test files exist and match testMatch, then re-run the suite before calling verify.',
 }
 
 export function actionFor(violation: Violation): string {

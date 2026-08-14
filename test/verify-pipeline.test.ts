@@ -103,6 +103,16 @@ describe('gatherResults', () => {
     })
   })
 
+  describe('[REQ-045] empty-suite', () => {
+    it('flags empty-suite for a results.json with zero tests — the exact shape spec-trace init scaffolds', async () => {
+      const cwd = fixture('empty-suite')
+
+      const { violations } = await gatherResults(DEFAULT_CONFIG, cwd)
+
+      expect(violations).toContainEqual(expect.objectContaining({ rule: 'empty-suite', severity: 'error' }))
+    })
+  })
+
   describe('[REQ-044] BOM-tolerant results.json parsing', () => {
     it('strips a leading byte-order-mark and parses the file normally', async () => {
       const cwd = fixture('bom-results')
